@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>व्हीकल प्रबंधन प्रणाली（运单管理系统） <!-- 运单管理系统 --> - 运单管理系统（शिपमेंट प्रबंधन प्रणाली）</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">运单管理系统（शिपमेंट प्रबंधन प्रणाली）</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/clients.html">客户列表（ग्राहक सूची）</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container my-4">
+        <div class="shipments-page">
+  <div class="filters mb-4">
+    <div class="btn-group" role="group">
+      <button type="button" class="btn btn-outline-primary active" data-filter="all">सभी（全部）</button> <!-- 全部 -->
+      <button type="button" class="btn btn-outline-warning" data-filter="अनपacked">अनपacked（未发货）</button> <!-- 未发货 -->
+      <button type="button" class="btn btn-outline-info" data-filter="पacked">पacked（已发货）</button> <!-- 已发货 -->
+      <button type="button" class="btn btn-outline-primary" data-filter="ट्रांसपोर्टिंग">ट्रांसपोर्टिंग（运输中）</button>
+      <!-- 运输中 -->
+      <button type="button" class="btn btn-outline-success" data-filter="पहुंचा हुआ">पहुंचा हुआ（已到达）</button>
+      <!-- 已到达 -->
+    </div>
+  </div>
+
+  
+
+  <div class="shipments-list">
+    
+  </div>
+</div>
+
+<style>
+  .shipment-card {
+    transition: all 0.3s ease;
+  }
+
+  .shipment-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const filterButtons = document.querySelectorAll('.filters button');
+    const shipmentCards = document.querySelectorAll('.shipment-card');
+
+    filterButtons.forEach(button => {
+      button.addEventListener('click', function () {
+        const filter = this.getAttribute('data-filter');
+        filterButtons.forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+
+        shipmentCards.forEach(card => {
+          if (filter === 'all' || card.getAttribute('data-status') === filter) {
+            card.style.display = 'block';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // यदि URL में एनchor है, तो संबंधित व्हीकल पर स्क्रोल करें <!-- 如果URL中包含锚点，滚动到对应的运单 -->
+    if (window.location.hash) {
+      const targetCard = document.querySelector(window.location.hash);
+      if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'smooth' });
+        targetCard.classList.add('border-primary');
+        setTimeout(() => targetCard.classList.remove('border-primary'), 3000);
+      }
+    }
+  });
+</script>
+    </main>
+
+    <footer class="bg-light py-3 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2024 运单管理系统（शिपमेंट प्रबंधन प्रणाली）</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

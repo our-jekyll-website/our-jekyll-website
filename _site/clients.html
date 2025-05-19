@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ग्राहक सूची （客户列表）<!-- 客户列表 --> - 运单管理系统（शिपमेंट प्रबंधन प्रणाली）</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">运单管理系统（शिपमेंट प्रबंधन प्रणाली）</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/clients.html">客户列表（ग्राहक सूची）</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container my-4">
+        <div class="clients-page">
+    <h1>ग्राहक सूची（客户列表）</h1> <!-- 客户列表 -->
+
+    <div class="row">
+        
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <a href="/clients/globalex/" class="text-decoration-none">
+                            इंडो-सिनो लॉजिस्टिक्स (Indo-Sino Logistics)
+                        </a>
+                    </h5>
+                    <h6 class="card-subtitle mb-2 text-muted">ग्राहक कोड（客户代码）：indosino</h6> <!-- 客户代码 -->
+                    
+                    <div class="card-text">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <p><strong>देश（国家）：</strong>भारत (India)</p> <!-- 国家 -->
+                                <p><strong>टाइमज़ोन（时区）：</strong>UTC+0</p> <!-- 时区 -->
+                            </div>
+                            <div class="col-sm-6">
+                                <p><strong>भाषा（语言）：</strong>हिंदी (Hindi)en</p> <!-- 语言 -->
+                                <p><strong>संपर्क नंबर（联系电话）：</strong>+91 98765 43210</p> <!-- 联系电话 -->
+                            </div>
+                        </div>
+
+                        
+                        <div class="mt-3">
+                            <strong>शिपमेंट सांख्यिकी（运单统计）：</strong> <!-- 运单统计 -->
+                            <span class="badge bg-primary">कुल（总数）：0</span> <!-- 总数 -->
+                             <!-- 状态值需与之前定义的印地语状态一致（如未发货→निर्गत नहीं किया गया） -->
+                            
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="/clients/globalex/" class="btn btn-outline-primary btn-sm">विवरण देखें（查看详情）</a> <!-- 查看详情 -->
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+    </main>
+
+    <footer class="bg-light py-3 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2024 运单管理系统（शिपमेंट प्रबंधन प्रणाली）</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
