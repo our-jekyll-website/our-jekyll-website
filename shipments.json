@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "customerName": "Customer A",
+    "customerCode": "CUST001",
+    "shipmentDate": "2023-01-01",
+    "expectedDeliveryDate": "2023-01-10",
+    "status": "Shipped"
+  },
+  {
+    "id": 2,
+    "customerName": "Customer B",
+    "customerCode": "CUST002",
+    "shipmentDate": "2023-01-02",
+    "expectedDeliveryDate": "2023-01-11",
+    "status": "Delivered"
+  }
+]
