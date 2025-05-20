@@ -1,114 +1,13 @@
---- 
-layout: default
-title: व्हीकल प्रबंधन प्रणाली（运单管理系统） <!-- 运单管理系统 -->
----
-<div class="shipments-page">
-  <div class="filters mb-4">
-    <div class="btn-group" role="group">
-      <button type="button" class="btn btn-outline-primary active" data-filter="all">सभी（全部）</button> <!-- 全部 -->
-      <button type="button" class="btn btn-outline-warning" data-filter="अनपacked">अनपacked（未发货）</button> <!-- 未发货 -->
-      <button type="button" class="btn btn-outline-info" data-filter="पacked">पacked（已发货）</button> <!-- 已发货 -->
-      <button type="button" class="btn btn-outline-primary" data-filter="ट्रांसपोर्टिंग">ट्रांसपोर्टिंग（运输中）</button>
-      <!-- 运输中 -->
-      <button type="button" class="btn btn-outline-success" data-filter="पहुंचा हुआ">पहुंचा हुआ（已到达）</button>
-      <!-- 已到达 -->
-    </div>
-  </div>
-
-  {% assign sorted_shipments = site.data.shipments | sort: "created_at" | reverse %}
-
-  <div class="shipments-list">
-    {% for shipment in sorted_shipments %}
-    <div class="card mb-3 shipment-card" id="{{ shipment.tracking_number }}" data-status="{{ shipment.status }}">
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-8">
-            <h5 class="card-title">
-              ट्रैकिंग नंबर（运单号）: {{ shipment.tracking_number }} <!-- 运单号 -->
-              {% case shipment.status %}
-              {% when 'अनपacked' %}
-              <span class="badge bg-warning">अनपacked（未发货）</span> <!-- 未发货 -->
-              {% when 'पacked' %}
-              <span class="badge bg-info">पacked（已发货）</span> <!-- 已发货 -->
-              {% when 'ट्रांसपोर्टिंग' %}
-              <span class="badge bg-primary">ट्रांसपोर्टिंग（运输中）</span> <!-- 运输中 -->
-              {% when 'पहुंचा हुआ' %}
-              <span class="badge bg-success">पहुंचा हुआ（已到达）</span> <!-- 已到达 -->
-              {% endcase %}
-            </h5>
-            <p class="card-text">
-              <strong>ग्राहक（客户）:</strong> <!-- 客户 -->
-              <a href="{{ '/clients/' | append: shipment.client_code | relative_url }}">
-                {% assign client_pages = site.clients | where: "client_code", shipment.client_code %}
-                {% assign client = client_pages | first %}
-                {{ client.title }}
-              </a>
-            </p>
-            <p class="card-text">
-              <strong>परिवहन का तरीका（运输方式）:</strong>{{ shipment.transport_mode }} <!-- 运输方式 --> |
-              <strong>गंतव्य（目的地）:</strong>{{ shipment.destination }} <!-- 目的地 -->
-            </p>
-            <p class="card-text">
-              <strong>सामान की जानकारी（货物信息）:</strong>{{ shipment.items_count }}पीस / {{ shipment.total_weight }}किलो
-              <!-- 货物信息 -->
-            </p>
-          </div>
-          <div class="col-md-4">
-            <div class="text-md-end">
-              <p class="card-text"><small class="text-muted">निर्माण तिथि（创建时间）: {{ shipment.created_at | date:
-                  "%Y-%m-%d %H:%M" }}</small></p> <!-- 创建时间 -->
-              {% if shipment.shipped_date %}
-              <p class="card-text"><small class="text-muted">पacked तिथि（发货时间）: {{ shipment.shipped_date | date:
-                  "%Y-%m-%d" }}</small></p> <!-- 发货时间 -->
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-
-<style>
-  .shipment-card {
-    transition: all 0.3s ease;
-  }
-
-  .shipment-card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  }
-</style>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const filterButtons = document.querySelectorAll('.filters button');
-    const shipmentCards = document.querySelectorAll('.shipment-card');
-
-    filterButtons.forEach(button => {
-      button.addEventListener('click', function () {
-        const filter = this.getAttribute('data-filter');
-        filterButtons.forEach(btn => btn.classList.remove('active'));
-        this.classList.add('active');
-
-        shipmentCards.forEach(card => {
-          if (filter === 'all' || card.getAttribute('data-status') === filter) {
-            card.style.display = 'block';
-          } else {
-            card.style.display = 'none';
-          }
-        });
-      });
-    });
-
-    // यदि URL में एनchor है, तो संबंधित व्हीकल पर स्क्रोल करें <!-- 如果URL中包含锚点，滚动到对应的运单 -->
-    if (window.location.hash) {
-      const targetCard = document.querySelector(window.location.hash);
-      if (targetCard) {
-        targetCard.scrollIntoView({ behavior: 'smooth' });
-        targetCard.classList.add('border-primary');
-        setTimeout(() => targetCard.classList.remove('border-primary'), 3000);
-      }
-    }
-  });
-</script>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="refresh" content="0; url=/shipment-dashboard/login.html" />
+    <script>
+      window.location.href = "/shipment-dashboard/login.html";
+    </script>
+    <title>Redirecting...</title>
+  </head>
+  <body>
+    <p>正在跳转到登录页面...</p>
+  </body>
+</html> 
