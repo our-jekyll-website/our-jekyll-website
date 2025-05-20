@@ -1,0 +1,281 @@
+---
+layout: default
+title: 订单列表
+---
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (!user || (user.role !== 'trader' && user.role !== 'customer')) {
+        window.location.href = '/shipment-dashboard/shipments.html';
+        return;
+    }
+
+    // 添加创建订单按钮和用户列表按钮（仅贸易商可见）
+    if (user.role === 'trader') {
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.marginBottom = '20px';
+        
+        const createOrderBtn = document.createElement('button');
+        createOrderBtn.textContent = '创建新运单';
+        createOrderBtn.className = 'btn-create';
+        createOrderBtn.style.marginRight = '10px';
+        createOrderBtn.onclick = function() {
+            window.location.href = '/shipment-dashboard/create_order.html';
+        };
+        
+        const userListBtn = document.createElement('button');
+        userListBtn.textContent = '用户列表';
+        userListBtn.className = 'btn-create';
+        userListBtn.onclick = function() {
+            window.location.href = '/shipment-dashboard/user_list.html';
+        };
+        
+        buttonContainer.appendChild(createOrderBtn);
+        buttonContainer.appendChild(userListBtn);
+        document.querySelector('h1').insertAdjacentElement('afterend', buttonContainer);
+    }
+
+    // 加载订单列表
+    loadOrders();
+
+    function loadOrders() {
+        // 从本地存储获取订单数据
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        
+        // 检查是否需要按用户筛选
+        const urlParams = new URLSearchParams(window.location.search);
+        const filterUsername = sessionStorage.getItem('filterUsername');
+        
+        if (urlParams.get('filter') === 'user' && filterUsername) {
+            // 获取该用户名在 users.json 里的 customerCode
+            fetch('/shipment-dashboard/data/users.json')
+                .then(res => res.json())
+                .then(data => {
+                    const userObj = data.users.find(u => u.username === filterUsername);
+                    let codes = [filterUsername];
+                    if (userObj && userObj.customerCode) {
+                        codes.push(userObj.customerCode);
+                    }
+                    orders = orders.filter(order => codes.includes(order.customerCode));
+                    // 清除筛选条件，避免影响下次查看
+                    sessionStorage.removeItem('filterUsername');
+                    // 按创建时间倒序排序
+                    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    displayOrders(orders);
+                });
+            return;
+        } else if (user.role === 'customer') {
+            // 支持用用户名或用户代码筛选
+            let codes = [user.username];
+            if (user.customerCode) {
+                codes.push(user.customerCode);
+            }
+            orders = orders.filter(order => codes.includes(order.customerCode));
+        }
+
+        // 按创建时间倒序排序
+        orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        displayOrders(orders);
+    }
+
+    function displayOrders(orders) {
+        const ordersList = document.getElementById('ordersList');
+        
+        if (orders.length === 0) {
+            ordersList.innerHTML = `
+                <div class="empty-state">
+                    <p>暂无订单</p>
+                    ${user.role === 'customer' ? `
+                        <button onclick="window.location.href='/shipment-dashboard/create_order.html'" class="btn-create">
+                            创建新订单
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            return;
+        }
+
+        const html = `
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>订单号</th>
+                        <th>产品名称</th>
+                        <th>数量</th>
+                        <th>总价</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>期望送达日期</th>
+                        <th>客户代码</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${orders.map(order => `
+                        <tr>
+                            <td>${order.id}</td>
+                            <td>${order.productName}</td>
+                            <td>${order.quantity}</td>
+                            <td>¥${(order.quantity * order.unitPrice).toFixed(2)}</td>
+                            <td><span class="status-badge status-${order.status}">${getStatusText(order.status)}</span></td>
+                            <td>${formatDate(order.createdAt)}</td>
+                            <td>${formatDate(order.expectedDeliveryDate)}</td>
+                            <td>${order.customerCode || '-'}</td>
+                            <td>
+                                <a href="/shipment-dashboard/order_details.html?id=${order.id}" 
+                                   class="btn-view">查看详情</a>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        ordersList.innerHTML = html;
+    }
+
+    function getStatusText(status) {
+        const statusMap = {
+            'pending': '待处理',
+            'processing': '处理中',
+            'shipped': '已发货',
+            'delivered': '已送达',
+            'cancelled': '已取消'
+        };
+        return statusMap[status] || status;
+    }
+
+    function formatDate(dateString) {
+        return new Date(dateString).toLocaleDateString('zh-CN');
+    }
+
+    document.getElementById('backToLoginBtn').onclick = function() {
+        sessionStorage.removeItem('user');
+        window.location.href = '/shipment-dashboard/login.html';
+    };
+});
+</script>
+
+<div class="container">
+    <h1>运单列表</h1>
+    <button id="backToLoginBtn" class="btn-create" style="margin-bottom: 16px;">退出</button>
+    <div id="ordersList" class="orders-container"></div>
+</div>
+
+<style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.btn-create {
+    padding: 10px 20px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.btn-create:hover {
+    background-color: #218838;
+}
+
+.orders-container {
+    margin-top: 20px;
+}
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.orders-table th,
+.orders-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.orders-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.orders-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.btn-view {
+    padding: 6px 12px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.btn-view:hover {
+    background-color: #0056b3;
+}
+
+.error {
+    color: #dc3545;
+    padding: 10px;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.empty-state p {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 16px;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.status-pending { 
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-processing { 
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.status-shipped { 
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-delivered { 
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-cancelled { 
+    background-color: #f8d7da;
+    color: #721c24;
+}
+</style> 
