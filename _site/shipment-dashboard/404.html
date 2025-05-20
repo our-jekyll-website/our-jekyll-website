@@ -2,9 +2,9 @@
 <html lang="zh-cn">
 <head>
   <meta charset="UTF-8">
-  <title>{{ page.title }} | {{ site.title }}</title>
+  <title>404 not found | 运单管理系统</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  <link rel="stylesheet" href="/assets/css/style.css">
   <style>
     body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f6f8fa; color: #222; }
     header { background: #24292f; color: #fff; padding: 1rem 0; }
@@ -17,10 +17,14 @@
 </head>
 <body>
   <main class="container">
-    {{ content }}
+    <div class="text-center py-5">
+    <h1>404</h1>
+    <p class="lead">抱歉，您访问的页面不存在。</p>
+    <a href="/" class="btn btn-primary">返回首页</a>
+</div>
   </main>
   <footer>
-    &copy; {{ site.time | date: '%Y' }} {{ site.title }}. 保留所有权利。
+    &copy; 2025 运单管理系统. 保留所有权利。
   </footer>
 </body>
 </html>

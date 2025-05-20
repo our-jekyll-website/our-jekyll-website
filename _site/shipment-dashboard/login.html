@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <title>登录 | 运单管理系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f6f8fa; color: #222; }
+    header { background: #24292f; color: #fff; padding: 1rem 0; }
+    nav { max-width: 900px; margin: 0 auto; display: flex; align-items: center; }
+    nav a { color: #fff; text-decoration: none; margin-right: 2rem; font-weight: 500; }
+    nav a:hover { text-decoration: underline; }
+    .container { max-width: 900px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 2rem; }
+    footer { text-align: center; color: #888; padding: 1rem 0; margin-top: 2rem; font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 如果已经登录，直接跳转到运单列表页面
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (user) {
+        window.location.href = '/shipment-dashboard/shipments.html';
+        return;
+    }
+
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const role = document.getElementById('role').value;
+
+        try {
+            // 获取用户数据
+            const response = await fetch('/shipment-dashboard/data/users.json');
+            const data = await response.json();
+            
+            // 验证用户
+            const user = data.users.find(u => 
+                u.username === username && 
+                u.password === password && 
+                u.role === role
+            );
+
+            if (user) {
+                // 创建用户会话数据（不包含密码）
+                const userData = {
+                    username: user.username,
+                    role: user.role,
+                    name: user.name,
+                    customerCode: user.customerCode || null  // 确保客户代码正确赋值
+                };
+
+                // 保存用户信息到sessionStorage
+                sessionStorage.setItem('user', JSON.stringify(userData));
+                
+                // 跳转到订单列表页面（无论贸易商还是客户）
+                window.location.href = '/shipment-dashboard/orders.html';
+            } else {
+                showError('用户名或密码错误，或所选角色不正确');
+            }
+        } catch (error) {
+            showError('登录过程中发生错误，请稍后重试');
+            console.error('Login error:', error);
+        }
+    });
+
+    function showError(message) {
+        const errorDiv = document.getElementById('error-message');
+        if (!errorDiv) {
+            const div = document.createElement('div');
+            div.id = 'error-message';
+            div.className = 'error-message';
+            form.insertBefore(div, form.firstChild);
+        }
+        document.getElementById('error-message').textContent = message;
+    }
+});
+</script>
+
+<div class="login-container">
+    <div class="login-box">
+        <h1>运单管理系统</h1>
+        <form id="loginForm" class="login-form">
+            <div class="form-group">
+                <label for="username">用户名：</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码：</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="role">角色：</label>
+                <select id="role" name="role" required>
+                    <option value="trader">贸易商</option>
+                    <option value="customer">客户</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-login">登录</button>
+        </form>
+    </div>
+</div>
+
+<style>
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+}
+
+.login-box {
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-box h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: #555;
+}
+
+.form-group input,
+.form-group select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.btn-login {
+    background-color: #007bff;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-login:hover {
+    background-color: #0056b3;
+}
+
+.error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+</style>
+  </main>
+  <footer>
+    &copy; 2025 运单管理系统. 保留所有权利。
+  </footer>
+</body>
+</html>

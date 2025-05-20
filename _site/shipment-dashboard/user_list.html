@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <title>用户列表 | 运单管理系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f6f8fa; color: #222; }
+    header { background: #24292f; color: #fff; padding: 1rem 0; }
+    nav { max-width: 900px; margin: 0 auto; display: flex; align-items: center; }
+    nav a { color: #fff; text-decoration: none; margin-right: 2rem; font-weight: 500; }
+    nav a:hover { text-decoration: underline; }
+    .container { max-width: 900px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 2rem; }
+    footer { text-align: center; color: #888; padding: 1rem 0; margin-top: 2rem; font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (!user || user.role !== 'trader') {
+        window.location.href = '/shipment-dashboard/orders.html';
+        return;
+    }
+
+    // 加载用户列表
+    try {
+        const response = await fetch('/shipment-dashboard/data/users.json');
+        const data = await response.json();
+        const customers = data.users.filter(u => u.role === 'customer');
+        displayUsers(customers);
+    } catch (error) {
+        console.error('加载用户列表失败:', error);
+    }
+
+    function displayUsers(users) {
+        const usersList = document.getElementById('usersList');
+        
+        if (users.length === 0) {
+            usersList.innerHTML = '<div class="empty-state"><p>暂无用户数据</p></div>';
+            return;
+        }
+
+        const html = `
+            <div class="table-responsive">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>客户代码</th>
+                        <th>姓名</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${users.map(user => `
+                        <tr>
+                            <td>
+                                <div class="user-avatar">${user.name ? user.name[0] : user.username[0]}</div>
+                                <span class="user-username">${user.username}</span>
+                            </td>
+                            <td>${user.customerCode || '-'}</td>
+                            <td>${user.name}</td>
+                            <td>
+                                <button onclick="viewUserOrders('${user.username}')" class="btn-view">查看订单</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            </div>
+        `;
+        usersList.innerHTML = html;
+    }
+
+    window.viewUserOrders = function(username) {
+        sessionStorage.setItem('filterUsername', username);
+        window.location.href = '/shipment-dashboard/orders.html?filter=user';
+    };
+});
+</script>
+
+<div class="userlist-header">
+    <h1><span class="icon">&#128100;</span> 用户列表</h1>
+    <div class="userlist-actions">
+        <button onclick="window.location.href='/shipment-dashboard/orders.html'" class="btn-create">返回订单列表</button>
+        <button onclick="logoutAndGoLogin()" class="btn-logout">退出</button>
+    </div>
+</div>
+<div id="usersList" class="users-container"></div>
+
+<script>
+function logoutAndGoLogin() {
+    sessionStorage.removeItem('user');
+    window.location.href = '/shipment-dashboard/login.html';
+}
+</script>
+
+<style>
+.userlist-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    background: #fff;
+    padding: 18px 24px 10px 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #0001;
+}
+.userlist-header h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+.userlist-header .icon {
+    font-size: 1.5em;
+    margin-right: 10px;
+}
+.userlist-actions {
+    display: flex;
+    gap: 12px;
+}
+.btn-create, .btn-logout {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.btn-create {
+    background-color: #007bff;
+    color: #fff;
+}
+.btn-create:hover {
+    background-color: #0056b3;
+}
+.btn-logout {
+    background-color: #dc3545;
+    color: #fff;
+}
+.btn-logout:hover {
+    background-color: #b52a37;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #0001;
+    margin-top: 10px;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+    background: transparent;
+}
+.users-table th,
+.users-table td {
+    padding: 14px 12px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+.users-table th {
+    background-color: #f6f8fa;
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 1px;
+}
+.users-table tr:hover {
+    background-color: #f2f7ff;
+    transition: background 0.2s;
+}
+.user-avatar {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #6fb1fc 0%, #4364f7 100%);
+    color: #fff;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 32px;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 1.1em;
+    vertical-align: middle;
+}
+.user-username {
+    vertical-align: middle;
+    font-weight: 500;
+    color: #222;
+}
+.btn-view {
+    padding: 7px 16px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.2s;
+}
+.btn-view:hover {
+    background-color: #218838;
+}
+.empty-state {
+    text-align: center;
+    padding: 48px 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #0001;
+    color: #888;
+    font-size: 1.2em;
+    margin-top: 30px;
+}
+@media (max-width: 700px) {
+    .userlist-header, .table-responsive {
+        padding: 10px;
+    }
+    .users-table th, .users-table td {
+        padding: 8px 6px;
+    }
+    .userlist-header h1 {
+        font-size: 1.2rem;
+    }
+}
+</style>
+  </main>
+  <footer>
+    &copy; 2025 运单管理系统. 保留所有权利。
+  </footer>
+</body>
+</html>

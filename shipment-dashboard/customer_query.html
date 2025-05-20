@@ -1,0 +1,213 @@
+---
+layout: default
+title: 运单查询
+---
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (!user || user.role !== 'customer') {
+        window.location.href = '/shipment-dashboard/shipments.html';
+        return;
+    }
+
+    const form = document.getElementById('queryForm');
+    const resultsDiv = document.getElementById('queryResults');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const customerCode = document.getElementById('customerCode').value;
+        
+        try {
+            const response = await fetch(`/api/shipments/customer/${customerCode}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                const shipments = await response.json();
+                displayResults(shipments);
+            } else {
+                resultsDiv.innerHTML = '<p class="error">查询失败，请重试</p>';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            resultsDiv.innerHTML = '<p class="error">查询失败，请重试</p>';
+        }
+    });
+
+    function displayResults(shipments) {
+        if (shipments.length === 0) {
+            resultsDiv.innerHTML = '<p>未找到相关运单</p>';
+            return;
+        }
+
+        const html = `
+            <table class="shipments-table">
+                <thead>
+                    <tr>
+                        <th>运单号</th>
+                        <th>出发地</th>
+                        <th>目的地</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>预计送达日期</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${shipments.map(shipment => `
+                        <tr>
+                            <td>${shipment.id}</td>
+                            <td>${shipment.origin}</td>
+                            <td>${shipment.destination}</td>
+                            <td>${getStatusText(shipment.status)}</td>
+                            <td>${formatDate(shipment.createdAt)}</td>
+                            <td>${formatDate(shipment.expectedDeliveryDate)}</td>
+                            <td>
+                                <a href="/shipment-dashboard/shipment_details.html?id=${shipment.id}" 
+                                   class="btn-view">查看详情</a>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        resultsDiv.innerHTML = html;
+    }
+
+    function getStatusText(status) {
+        const statusMap = {
+            'pending': '待处理',
+            'in_transit': '运输中',
+            'delivered': '已送达',
+            'cancelled': '已取消'
+        };
+        return statusMap[status] || status;
+    }
+
+    function formatDate(dateString) {
+        return new Date(dateString).toLocaleDateString('zh-CN');
+    }
+});
+</script>
+
+<div class="container">
+    <h1>运单查询</h1>
+    
+    <form id="queryForm" class="query-form">
+        <div class="form-group">
+            <label for="customerCode">客户代码：</label>
+            <input type="text" id="customerCode" name="customerCode" required>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">查询</button>
+        </div>
+    </form>
+
+    <div id="queryResults" class="results-container"></div>
+</div>
+
+<style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.query-form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.form-actions {
+    margin-top: 20px;
+}
+
+.btn-primary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.results-container {
+    margin-top: 20px;
+}
+
+.shipments-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.shipments-table th,
+.shipments-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.shipments-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.shipments-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.btn-view {
+    padding: 6px 12px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.btn-view:hover {
+    background-color: #218838;
+}
+
+.error {
+    color: #dc3545;
+    padding: 10px;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+</style> 

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <title>订单详情 | 运单管理系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f6f8fa; color: #222; }
+    header { background: #24292f; color: #fff; padding: 1rem 0; }
+    nav { max-width: 900px; margin: 0 auto; display: flex; align-items: center; }
+    nav a { color: #fff; text-decoration: none; margin-right: 2rem; font-weight: 500; }
+    nav a:hover { text-decoration: underline; }
+    .container { max-width: 900px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 2rem; }
+    footer { text-align: center; color: #888; padding: 1rem 0; margin-top: 2rem; font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (!user || (user.role !== 'trader' && user.role !== 'customer')) {
+        window.location.href = '/shipment-dashboard/shipments.html';
+        return;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('id');
+
+    if (!orderId) {
+        window.location.href = '/shipment-dashboard/orders.html';
+        return;
+    }
+
+    loadOrderDetails();
+
+    function loadOrderDetails() {
+        // 从本地存储获取订单数据
+        const orders = JSON.parse(localStorage.getItem('orders')) || [];
+        const order = orders.find(o => o.id === orderId);
+
+        if (order) {
+            // 如果是客户，检查是否是自己的订单
+            if (user.role === 'customer' && order.customerCode !== user.customerCode) {
+                window.location.href = '/shipment-dashboard/orders.html';
+                return;
+            }
+            displayOrderDetails(order);
+        } else {
+            document.getElementById('orderDetails').innerHTML = '<p class="error">订单不存在</p>';
+        }
+    }
+
+    function displayOrderDetails(order) {
+        const orderDetails = document.getElementById('orderDetails');
+        const totalAmount = order.quantity * order.unitPrice;
+
+        let statusUpdateHtml = '';
+        let deleteBtnHtml = '';
+        if (user.role === 'trader') {
+            statusUpdateHtml = `
+                <div class="status-update">
+                    <label for="orderStatus">更新状态：</label>
+                    <select id="orderStatus" onchange="updateOrderStatus('${order.id}', this.value)">
+                        <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>待处理</option>
+                        <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>处理中</option>
+                        <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>已发货</option>
+                        <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>已送达</option>
+                        <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>已取消</option>
+                    </select>
+                </div>
+            `;
+            deleteBtnHtml = `<button onclick="deleteOrder('${order.id}')" class="btn-create" style="background-color:#dc3545;margin-left:10px;">删除订单</button>`;
+        }
+
+        const html = `
+            <div class="order-details">
+                <div class="order-header">
+                    <h2>订单详情</h2>
+                    ${statusUpdateHtml}
+                </div>
+
+                <div class="details-grid">
+                    <div class="detail-group">
+                        <h3>基本信息</h3>
+                        <div class="detail-item">
+                            <span class="label">订单号：</span>
+                            <span class="value">${order.id}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">创建时间：</span>
+                            <span class="value">${formatDate(order.createdAt)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">当前状态：</span>
+                            <span class="value status-${order.status}">${getStatusText(order.status)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">客户代码：</span>
+                            <span class="value">${order.customerCode}</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-group">
+                        <h3>产品信息</h3>
+                        <div class="detail-item">
+                            <span class="label">产品名称：</span>
+                            <span class="value">${order.productName}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">数量：</span>
+                            <span class="value">${order.quantity}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">单价：</span>
+                            <span class="value">¥${order.unitPrice.toFixed(2)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">总金额：</span>
+                            <span class="value highlight">¥${totalAmount.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-group">
+                        <h3>配送信息</h3>
+                        <div class="detail-item">
+                            <span class="label">收货地址：</span>
+                            <span class="value">${order.deliveryAddress}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">联系人：</span>
+                            <span class="value">${order.contactPerson}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">联系电话：</span>
+                            <span class="value">${order.contactPhone}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">期望送达日期：</span>
+                            <span class="value">${formatDate(order.expectedDeliveryDate)}</span>
+                        </div>
+                    </div>
+
+                    ${order.remarks ? `
+                        <div class="detail-group">
+                            <h3>备注信息</h3>
+                            <div class="detail-item remarks">
+                                <span class="value">${order.remarks}</span>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="action-buttons">
+                    <button onclick="logoutAndGoLogin()" class="btn-create">退出</button>
+                    ${deleteBtnHtml}
+                </div>
+            </div>
+        `;
+        orderDetails.innerHTML = html;
+    }
+
+    function getStatusText(status) {
+        const statusMap = {
+            'pending': '待处理',
+            'processing': '处理中',
+            'shipped': '已发货',
+            'delivered': '已送达',
+            'cancelled': '已取消'
+        };
+        return statusMap[status] || status;
+    }
+
+    function formatDate(dateString) {
+        return new Date(dateString).toLocaleDateString('zh-CN');
+    }
+
+    window.updateOrderStatus = function(orderId, newStatus) {
+        // 从本地存储获取订单数据
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        const orderIndex = orders.findIndex(o => o.id === orderId);
+
+        if (orderIndex !== -1) {
+            // 更新订单状态
+            orders[orderIndex].status = newStatus;
+            
+            // 保存到本地存储
+            localStorage.setItem('orders', JSON.stringify(orders));
+            
+            alert('订单状态更新成功！');
+            loadOrderDetails(); // 重新加载订单详情
+        } else {
+            alert('更新失败，请重试');
+        }
+    };
+
+    window.deleteOrder = function(orderId) {
+        if (!confirm('确定要删除该订单吗？')) return;
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        orders = orders.filter(o => o.id !== orderId);
+        localStorage.setItem('orders', JSON.stringify(orders));
+        alert('订单已删除');
+        window.location.href = '/shipment-dashboard/orders.html';
+    };
+
+    window.logoutAndGoLogin = function() {
+        sessionStorage.removeItem('user');
+        window.location.href = '/shipment-dashboard/login.html';
+    };
+});
+</script>
+
+<div class="container">
+    <div id="orderDetails" class="order-details-container"></div>
+</div>
+
+<style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.order-details {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.status-update {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-update select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.detail-group {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.detail-group h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.detail-item {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-item .label {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.detail-item .value {
+    color: #333;
+    font-size: 16px;
+}
+
+.detail-item .value.highlight {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.detail-item.remarks {
+    background: #fff;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+.status-pending { color: #ffc107; }
+.status-processing { color: #17a2b8; }
+.status-shipped { color: #007bff; }
+.status-delivered { color: #28a745; }
+.status-cancelled { color: #dc3545; }
+
+.action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.error {
+    color: #dc3545;
+    padding: 10px;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+</style> 
+  </main>
+  <footer>
+    &copy; 2025 运单管理系统. 保留所有权利。
+  </footer>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <title>运单列表 | 运单管理系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f6f8fa; color: #222; }
+    header { background: #24292f; color: #fff; padding: 1rem 0; }
+    nav { max-width: 900px; margin: 0 auto; display: flex; align-items: center; }
+    nav a { color: #fff; text-decoration: none; margin-right: 2rem; font-weight: 500; }
+    nav a:hover { text-decoration: underline; }
+    .container { max-width: 900px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 2rem; }
+    footer { text-align: center; color: #888; padding: 1rem 0; margin-top: 2rem; font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (!user) {
+        window.location.href = '/shipment-dashboard/login.html';
+        return;
+    }
+
+    // 动态渲染导航栏
+    const navMenu = document.createElement('div');
+    navMenu.className = 'nav-menu';
+    if (user.role === 'trader') {
+        navMenu.innerHTML = `
+            <a href="/shipment-dashboard/shipments.html" class="active">发货管理</a>
+            <a href="/shipment-dashboard/orders.html">订单管理</a>
+            <a href="/shipment-dashboard/customers.html">客户管理</a>
+            
+        `;
+    } else {
+        navMenu.innerHTML = `
+            <a href="/shipment-dashboard/orders.html">订单列表</a>
+        `;
+    }
+    document.body.insertBefore(navMenu, document.body.firstChild);
+
+    // 如果是贸易商，添加创建运单按钮
+    if (user.role === 'trader') {
+        const button = document.createElement('button');
+        button.textContent = '创建新运单';
+        button.className = 'btn-create';
+        button.onclick = function() {
+            window.location.href = '/shipment-dashboard/create_shipment.html';
+        };
+        document.querySelector('h1').insertAdjacentElement('afterend', button);
+    }
+
+    loadShipments();
+
+    function loadShipments() {
+        // 从本地存储获取运单数据
+        let shipments = JSON.parse(localStorage.getItem('shipments')) || [];
+        
+        // 如果是客户，只显示该客户的运单
+        if (user.role === 'customer') {
+            shipments = shipments.filter(shipment => shipment.customerCode === user.customerCode);
+        }
+
+        // 按创建时间倒序排序
+        shipments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        displayShipments(shipments);
+    }
+
+    function displayShipments(shipments) {
+        const shipmentsList = document.getElementById('shipmentsList');
+        
+        if (shipments.length === 0) {
+            shipmentsList.innerHTML = `
+                <div class="empty-state">
+                    <p>暂无运单</p>
+                    ${user.role === 'trader' ? `
+                        <button onclick="window.location.href='/shipment-dashboard/create_shipment.html'" class="btn-create">
+                            创建新运单
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            return;
+        }
+
+        const html = `
+            <table class="shipments-table">
+                <thead>
+                    <tr>
+                        <th>运单号</th>
+                        <th>客户名称</th>
+                        <th>客户代码</th>
+                        <th>发货日期</th>
+                        <th>预计送达日期</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${shipments.map(shipment => `
+                        <tr>
+                            <td>${shipment.id}</td>
+                            <td>${shipment.customerName}</td>
+                            <td>${shipment.customerCode}</td>
+                            <td>${formatDate(shipment.shipmentDate)}</td>
+                            <td>${formatDate(shipment.expectedDeliveryDate)}</td>
+                            <td><span class="status-badge status-${shipment.status}">${getStatusText(shipment.status)}</span></td>
+                            <td>
+                                <a href="/shipment-dashboard/shipment_details.html?id=${shipment.id}" 
+                                   class="btn-view">查看详情</a>
+                                ${user.role === 'trader' ? `
+                                    <button onclick="updateShipmentStatus('${shipment.id}')" 
+                                            class="btn-update">更新状态</button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        shipmentsList.innerHTML = html;
+    }
+
+    function getStatusText(status) {
+        const statusMap = {
+            'pending': '待处理',
+            'processing': '处理中',
+            'shipped': '已发货',
+            'delivered': '已送达',
+            'cancelled': '已取消'
+        };
+        return statusMap[status] || status;
+    }
+
+    function formatDate(dateString) {
+        return new Date(dateString).toLocaleDateString('zh-CN');
+    }
+
+    window.updateShipmentStatus = function(shipmentId) {
+        const newStatus = prompt('请输入新的状态 (pending/processing/shipped/delivered/cancelled):');
+        if (!newStatus) return;
+
+        // 从本地存储获取运单数据
+        let shipments = JSON.parse(localStorage.getItem('shipments')) || [];
+        const shipmentIndex = shipments.findIndex(s => s.id === shipmentId);
+
+        if (shipmentIndex !== -1) {
+            // 更新运单状态
+            shipments[shipmentIndex].status = newStatus;
+            
+            // 保存到本地存储
+            localStorage.setItem('shipments', JSON.stringify(shipments));
+            
+            alert('运单状态更新成功！');
+            loadShipments(); // 重新加载运单列表
+        } else {
+            alert('更新失败，请重试');
+        }
+    };
+});
+</script>
+
+<div class="container">
+    <h1>运单列表</h1>
+    <div id="shipmentsList" class="shipments-container"></div>
+</div>
+
+<style>
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.btn-create {
+    padding: 10px 20px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.btn-create:hover {
+    background-color: #218838;
+}
+
+.shipments-container {
+    margin-top: 20px;
+}
+
+.shipments-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.shipments-table th,
+.shipments-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.shipments-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.shipments-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.btn-view,
+.btn-update {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.btn-view {
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-update {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.btn-view:hover {
+    background-color: #0056b3;
+}
+
+.btn-update:hover {
+    background-color: #e0a800;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.empty-state p {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 16px;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.status-pending { 
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-processing { 
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.status-shipped { 
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-delivered { 
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-cancelled { 
+    background-color: #f8d7da;
+    color: #721c24;
+}
+</style>
+  </main>
+  <footer>
+    &copy; 2025 运单管理系统. 保留所有权利。
+  </footer>
+</body>
+</html>

@@ -1,0 +1,146 @@
+---
+layout: default
+title: 创建运单
+---
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (!user || user.role !== 'trader') {
+        window.location.href = '/shipment-dashboard/shipments.html';
+        return;
+    }
+
+    const form = document.getElementById('createShipmentForm');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const shipmentData = {
+            id: 'SHIP' + Date.now().toString().slice(-6),
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            customerName: formData.get('customerName'),
+            customerCode: formData.get('customerCode'),
+            shipmentDate: formData.get('shipmentDate'),
+            expectedDeliveryDate: formData.get('expectedDeliveryDate'),
+            remarks: formData.get('remarks') || ''
+        };
+
+        // 获取现有运单
+        let shipments = JSON.parse(localStorage.getItem('shipments')) || [];
+        
+        // 添加新运单
+        shipments.push(shipmentData);
+        
+        // 保存到本地存储
+        localStorage.setItem('shipments', JSON.stringify(shipments));
+
+        alert('运单创建成功！');
+        window.location.href = '/shipment-dashboard/shipments.html';
+    });
+});
+</script>
+
+<div class="container">
+    <h1>创建运单</h1>
+    
+    <form id="createShipmentForm" class="shipment-form">
+        <div class="form-group">
+            <label for="customerName">客户名称：</label>
+            <input type="text" id="customerName" name="customerName" required>
+        </div>
+
+        <div class="form-group">
+            <label for="customerCode">客户代码：</label>
+            <input type="text" id="customerCode" name="customerCode" required>
+        </div>
+
+        <div class="form-group">
+            <label for="shipmentDate">发货日期：</label>
+            <input type="date" id="shipmentDate" name="shipmentDate" required>
+        </div>
+
+        <div class="form-group">
+            <label for="expectedDeliveryDate">预计送达日期：</label>
+            <input type="date" id="expectedDeliveryDate" name="expectedDeliveryDate" required>
+        </div>
+
+        <div class="form-group">
+            <label for="remarks">备注：</label>
+            <textarea id="remarks" name="remarks" rows="4"></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">创建运单</button>
+            <button type="button" class="btn-secondary" onclick="window.location.href='/shipment-dashboard/shipments.html'">取消</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.shipment-form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.form-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+</style> 

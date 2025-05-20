@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <title>创建订单 | 运单管理系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f6f8fa; color: #222; }
+    header { background: #24292f; color: #fff; padding: 1rem 0; }
+    nav { max-width: 900px; margin: 0 auto; display: flex; align-items: center; }
+    nav a { color: #fff; text-decoration: none; margin-right: 2rem; font-weight: 500; }
+    nav a:hover { text-decoration: underline; }
+    .container { max-width: 900px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 2rem; }
+    footer { text-align: center; color: #888; padding: 1rem 0; margin-top: 2rem; font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (!user || (user.role !== 'trader' && user.role !== 'customer')) {
+        window.location.href = '/shipment-dashboard/shipments.html';
+        return;
+    }
+
+    let customers = [];
+    if (user.role === 'trader') {
+        // 加载客户列表
+        try {
+            const response = await fetch('/shipment-dashboard/data/users.json');
+            const data = await response.json();
+            customers = data.users.filter(u => u.role === 'customer');
+            // 填充客户选择下拉框
+            const customerSelect = document.getElementById('customerCode');
+            customerSelect.innerHTML = '<option value="">请选择客户</option>' +
+                customers.map(c => `<option value="${c.customerCode}" data-contact="${c.name}" data-phone="${c.phone || ''}">${c.name} (${c.customerCode})</option>`).join('');
+            // 联系人下拉框
+            const contactSelect = document.getElementById('contactPerson');
+            contactSelect.innerHTML = '<option value="">请选择联系人</option>' +
+                customers.map(c => `<option value="${c.name}" data-code="${c.customerCode}" data-phone="${c.phone || ''}">${c.name}</option>`).join('');
+            // 选择联系人时自动填充客户代码和联系电话
+            contactSelect.onchange = function() {
+                const selected = contactSelect.options[contactSelect.selectedIndex];
+                document.getElementById('customerCode').value = selected.getAttribute('data-code');
+                document.getElementById('contactPhone').value = selected.getAttribute('data-phone');
+            };
+        } catch (error) {
+            console.error('加载客户列表失败:', error);
+        }
+    } else {
+        document.getElementById('customerCodeGroup').style.display = 'none';
+    }
+
+    const form = document.getElementById('createOrderForm');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // 获取表单数据
+        const productName = document.getElementById('productName').value;
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const unitPrice = parseFloat(document.getElementById('unitPrice').value);
+        const expectedDeliveryDate = document.getElementById('expectedDeliveryDate').value;
+        const deliveryAddress = document.getElementById('deliveryAddress').value;
+        const contactPerson = document.getElementById('contactPerson').value;
+        const contactPhone = document.getElementById('contactPhone').value;
+        const remarks = document.getElementById('remarks').value;
+
+        // 获取客户代码
+        let customerCode;
+        if (user.role === 'customer') {
+            customerCode = user.username;
+        } else {
+            customerCode = document.getElementById('customerCode').value;
+            if (!customerCode) {
+                alert('请选择客户');
+                return;
+            }
+        }
+
+        // 创建新订单
+        const newOrder = {
+            id: 'ORD' + Date.now(),  // 生成唯一订单号
+            productName: productName,
+            quantity: quantity,
+            unitPrice: unitPrice,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            expectedDeliveryDate: expectedDeliveryDate,
+            customerCode: customerCode,
+            deliveryAddress: deliveryAddress,
+            contactPerson: contactPerson,
+            contactPhone: contactPhone,
+            remarks: remarks
+        };
+
+        // 获取现有订单
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        
+        // 添加新订单
+        orders.push(newOrder);
+        
+        // 保存更新后的订单列表
+        localStorage.setItem('orders', JSON.stringify(orders));
+
+        // 跳转到订单列表页面
+        window.location.href = '/shipment-dashboard/orders.html';
+    });
+});
+</script>
+
+<div class="container">
+    <h1>创建订单</h1>
+    
+    <form id="createOrderForm" class="order-form">
+        <div class="form-group" id="customerCodeGroup">
+            <label for="customerCode">客户代码：</label>
+            <select id="customerCode" name="customerCode" required>
+                <option value="">请选择客户</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="productName">产品名称：</label>
+            <input type="text" id="productName" name="productName" required>
+        </div>
+
+        <div class="form-group">
+            <label for="quantity">数量：</label>
+            <input type="number" id="quantity" name="quantity" min="1" required>
+        </div>
+
+        <div class="form-group">
+            <label for="unitPrice">单价：</label>
+            <input type="number" id="unitPrice" name="unitPrice" min="0" step="0.01" required>
+        </div>
+
+        <div class="form-group">
+            <label for="deliveryAddress">收货地址：</label>
+            <textarea id="deliveryAddress" name="deliveryAddress" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="contactPerson">联系人：</label>
+            <select id="contactPerson" name="contactPerson" required>
+                <option value="">请选择联系人</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="contactPhone">联系电话：</label>
+            <input type="tel" id="contactPhone" name="contactPhone" required>
+        </div>
+
+        <div class="form-group">
+            <label for="expectedDeliveryDate">期望送达日期：</label>
+            <input type="date" id="expectedDeliveryDate" name="expectedDeliveryDate" required>
+        </div>
+
+        <div class="form-group">
+            <label for="remarks">备注：</label>
+            <textarea id="remarks" name="remarks" rows="4"></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">创建订单</button>
+            <button type="button" class="btn-secondary" onclick="window.location.href='/shipment-dashboard/orders.html'">取消</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.order-form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.form-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+</style> 
+  </main>
+  <footer>
+    &copy; 2025 运单管理系统. 保留所有权利。
+  </footer>
+</body>
+</html>
