@@ -11,19 +11,17 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // 动态渲染导航栏
+    // 顶部导航栏美化
     const navMenu = document.createElement('div');
     navMenu.className = 'nav-menu';
     if (user.role === 'trader') {
         navMenu.innerHTML = `
-            <a href="/shipment-dashboard/shipments.html" class="active">发货管理</a>
-            <a href="/shipment-dashboard/orders.html">订单管理</a>
-            <a href="/shipment-dashboard/customers.html">客户管理</a>
-            
+            <a href="/shipment-dashboard/orders.html"><span class="icon">&#128179;</span> 订单管理</a>
+            <a href="/shipment-dashboard/customers.html"><span class="icon">&#128101;</span> 客户管理</a>
         `;
     } else {
         navMenu.innerHTML = `
-            <a href="/shipment-dashboard/orders.html">订单列表</a>
+            <a href="/shipment-dashboard/orders.html"><span class="icon">&#128179;</span> 订单列表</a>
         `;
     }
     document.body.insertBefore(navMenu, document.body.firstChild);
@@ -42,26 +40,20 @@ document.addEventListener('DOMContentLoaded', function() {
     loadShipments();
 
     function loadShipments() {
-        // 从本地存储获取运单数据
         let shipments = JSON.parse(localStorage.getItem('shipments')) || [];
-        
-        // 如果是客户，只显示该客户的运单
         if (user.role === 'customer') {
             shipments = shipments.filter(shipment => shipment.customerCode === user.customerCode);
         }
-
-        // 按创建时间倒序排序
         shipments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
         displayShipments(shipments);
     }
 
     function displayShipments(shipments) {
         const shipmentsList = document.getElementById('shipmentsList');
-        
         if (shipments.length === 0) {
             shipmentsList.innerHTML = `
                 <div class="empty-state">
+                    <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f69a.svg" alt="empty" class="empty-img"/>
                     <p>暂无运单</p>
                     ${user.role === 'trader' ? `
                         <button onclick="window.location.href='/shipment-dashboard/create_shipment.html'" class="btn-create">
@@ -74,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const html = `
+            <div class="table-responsive">
             <table class="shipments-table">
                 <thead>
                     <tr>
@@ -81,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <th>客户名称</th>
                         <th>客户代码</th>
                         <th>发货日期</th>
-                        <th>预计送达日期</th>
+                        <th>预计送达</th>
                         <th>状态</th>
                         <th>操作</th>
                     </tr>
@@ -89,24 +82,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 <tbody>
                     ${shipments.map(shipment => `
                         <tr>
-                            <td>${shipment.id}</td>
+                            <td><span class="shipment-id">${shipment.id}</span></td>
                             <td>${shipment.customerName}</td>
                             <td>${shipment.customerCode}</td>
                             <td>${formatDate(shipment.shipmentDate)}</td>
                             <td>${formatDate(shipment.expectedDeliveryDate)}</td>
                             <td><span class="status-badge status-${shipment.status}">${getStatusText(shipment.status)}</span></td>
                             <td>
-                                <a href="/shipment-dashboard/shipment_details.html?id=${shipment.id}" 
-                                   class="btn-view">查看详情</a>
+                                <a href="/shipment-dashboard/shipment_details.html?id=${shipment.id}" class="btn-view">查看详情</a>
                                 ${user.role === 'trader' ? `
-                                    <button onclick="updateShipmentStatus('${shipment.id}')" 
-                                            class="btn-update">更新状态</button>
+                                    <button onclick="updateShipmentStatus('${shipment.id}')" class="btn-update">更新状态</button>
                                 ` : ''}
                             </td>
                         </tr>
                     `).join('')}
                 </tbody>
             </table>
+            </div>
         `;
         shipmentsList.innerHTML = html;
     }
@@ -123,26 +115,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function formatDate(dateString) {
+        if (!dateString) return '-';
         return new Date(dateString).toLocaleDateString('zh-CN');
     }
 
     window.updateShipmentStatus = function(shipmentId) {
         const newStatus = prompt('请输入新的状态 (pending/processing/shipped/delivered/cancelled):');
         if (!newStatus) return;
-
-        // 从本地存储获取运单数据
         let shipments = JSON.parse(localStorage.getItem('shipments')) || [];
         const shipmentIndex = shipments.findIndex(s => s.id === shipmentId);
-
         if (shipmentIndex !== -1) {
-            // 更新运单状态
             shipments[shipmentIndex].status = newStatus;
-            
-            // 保存到本地存储
             localStorage.setItem('shipments', JSON.stringify(shipments));
-            
             alert('运单状态更新成功！');
-            loadShipments(); // 重新加载运单列表
+            loadShipments();
         } else {
             alert('更新失败，请重试');
         }
@@ -151,131 +137,212 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <div class="container">
-    <h1>运单列表</h1>
+    <h1><span class="icon">&#128230;</span> 运单列表</h1>
     <div id="shipmentsList" class="shipments-container"></div>
 </div>
 
 <style>
+body {
+    background: #f6f8fa;
+}
+.nav-menu {
+    display: flex;
+    gap: 24px;
+    background: #24292f;
+    padding: 18px 0 10px 0;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 24px;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 8px #0001;
+}
+.nav-menu a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.1em;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.nav-menu a.active, .nav-menu a:hover {
+    background: #0366d6;
+}
+.nav-menu .icon {
+    font-size: 1.2em;
+}
+
 .container {
-    max-width: 1200px;
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 24px 18px 40px 18px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px #0001;
+}
+
+h1 {
+    font-size: 2.1rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .btn-create {
-    padding: 10px 20px;
+    padding: 10px 22px;
     background-color: #28a745;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 16px;
-    margin-bottom: 20px;
+    margin: 10px 0 18px 0;
+    font-weight: 500;
+    transition: background 0.2s;
+    box-shadow: 0 1px 4px #0001;
 }
-
 .btn-create:hover {
     background-color: #218838;
 }
 
 .shipments-container {
-    margin-top: 20px;
+    margin-top: 10px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #0001;
+    background: #fff;
 }
 
 .shipments-table {
     width: 100%;
     border-collapse: collapse;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: transparent;
+    min-width: 900px;
 }
-
 .shipments-table th,
 .shipments-table td {
-    padding: 12px;
+    padding: 14px 12px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
 }
-
 .shipments-table th {
-    background-color: #f8f9fa;
-    font-weight: bold;
+    background-color: #f6f8fa;
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 1px;
 }
-
 .shipments-table tr:hover {
-    background-color: #f5f5f5;
+    background-color: #f2f7ff;
+    transition: background 0.2s;
+}
+.shipment-id {
+    font-family: 'Fira Mono', 'Consolas', monospace;
+    background: #eaf5ff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 1em;
+    color: #0366d6;
+    font-weight: 600;
 }
 
 .btn-view,
 .btn-update {
-    padding: 6px 12px;
+    padding: 7px 16px;
     border: none;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 15px;
     cursor: pointer;
     margin-right: 8px;
+    font-weight: 500;
+    transition: background 0.2s;
 }
-
 .btn-view {
     background-color: #007bff;
     color: white;
     text-decoration: none;
 }
-
 .btn-update {
     background-color: #ffc107;
-    color: #000;
+    color: #222;
 }
-
 .btn-view:hover {
     background-color: #0056b3;
 }
-
 .btn-update:hover {
     background-color: #e0a800;
 }
 
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.empty-state p {
-    color: #666;
-    margin-bottom: 20px;
-    font-size: 16px;
-}
-
 .status-badge {
-    padding: 4px 8px;
+    padding: 4px 12px;
     border-radius: 4px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 1px;
+    display: inline-block;
 }
-
 .status-pending { 
     background-color: #fff3cd;
     color: #856404;
 }
-
 .status-processing { 
     background-color: #cce5ff;
     color: #004085;
 }
-
 .status-shipped { 
     background-color: #d4edda;
     color: #155724;
 }
-
 .status-delivered { 
     background-color: #d1e7dd;
     color: #0f5132;
 }
-
 .status-cancelled { 
     background-color: #f8d7da;
     color: #721c24;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px 0 32px 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #0001;
+    color: #888;
+    font-size: 1.2em;
+    margin-top: 30px;
+}
+.empty-state .empty-img {
+    width: 64px;
+    margin-bottom: 18px;
+    opacity: 0.7;
+}
+.empty-state p {
+    margin-bottom: 18px;
+    font-size: 1.1em;
+}
+
+@media (max-width: 900px) {
+    .container {
+        padding: 10px 2vw 30px 2vw;
+    }
+    .shipments-table th, .shipments-table td {
+        padding: 8px 6px;
+    }
+    h1 {
+        font-size: 1.3rem;
+    }
+    .nav-menu {
+        gap: 10px;
+        padding: 10px 0 6px 0;
+    }
 }
 </style>

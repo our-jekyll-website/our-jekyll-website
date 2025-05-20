@@ -11,22 +11,36 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // 顶部导航栏
+    const navMenu = document.createElement('div');
+    navMenu.className = 'nav-menu';
+    if (user.role === 'trader') {
+        navMenu.innerHTML = `
+            <a href="/shipment-dashboard/orders.html" class="active"><span class="icon">&#128179;</span> 订单管理</a>
+            <a href="/shipment-dashboard/user_list.html"><span class="icon">&#128100;</span> 用户列表</a>
+        `;
+    } else {
+        navMenu.innerHTML = `
+            <a href="/shipment-dashboard/orders.html" class="active"><span class="icon">&#128179;</span> 订单列表</a>
+        `;
+    }
+    document.body.insertBefore(navMenu, document.body.firstChild);
+
     // 添加创建订单按钮和用户列表按钮（仅贸易商可见）
     if (user.role === 'trader') {
         const buttonContainer = document.createElement('div');
-        buttonContainer.style.marginBottom = '20px';
+        buttonContainer.className = 'order-btn-group';
         
         const createOrderBtn = document.createElement('button');
-        createOrderBtn.textContent = '创建新运单';
+        createOrderBtn.textContent = '创建新订单';
         createOrderBtn.className = 'btn-create';
-        createOrderBtn.style.marginRight = '10px';
         createOrderBtn.onclick = function() {
             window.location.href = '/shipment-dashboard/create_order.html';
         };
         
         const userListBtn = document.createElement('button');
         userListBtn.textContent = '用户列表';
-        userListBtn.className = 'btn-create';
+        userListBtn.className = 'btn-create btn-secondary';
         userListBtn.onclick = function() {
             window.location.href = '/shipment-dashboard/user_list.html';
         };
@@ -40,15 +54,11 @@ document.addEventListener('DOMContentLoaded', function() {
     loadOrders();
 
     function loadOrders() {
-        // 从本地存储获取订单数据
         let orders = JSON.parse(localStorage.getItem('orders')) || [];
-        
-        // 检查是否需要按用户筛选
         const urlParams = new URLSearchParams(window.location.search);
         const filterUsername = sessionStorage.getItem('filterUsername');
         
         if (urlParams.get('filter') === 'user' && filterUsername) {
-            // 获取该用户名在 users.json 里的 customerCode
             fetch('/shipment-dashboard/data/users.json')
                 .then(res => res.json())
                 .then(data => {
@@ -58,34 +68,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         codes.push(userObj.customerCode);
                     }
                     orders = orders.filter(order => codes.includes(order.customerCode));
-                    // 清除筛选条件，避免影响下次查看
                     sessionStorage.removeItem('filterUsername');
-                    // 按创建时间倒序排序
                     orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                     displayOrders(orders);
                 });
             return;
         } else if (user.role === 'customer') {
-            // 支持用用户名或用户代码筛选
             let codes = [user.username];
             if (user.customerCode) {
                 codes.push(user.customerCode);
             }
             orders = orders.filter(order => codes.includes(order.customerCode));
         }
-
-        // 按创建时间倒序排序
         orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
         displayOrders(orders);
     }
 
     function displayOrders(orders) {
         const ordersList = document.getElementById('ordersList');
-        
         if (orders.length === 0) {
             ordersList.innerHTML = `
                 <div class="empty-state">
+                    <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f6d2.svg" alt="empty" class="empty-img"/>
                     <p>暂无订单</p>
                     ${user.role === 'customer' ? `
                         <button onclick="window.location.href='/shipment-dashboard/create_order.html'" class="btn-create">
@@ -98,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const html = `
+            <div class="table-responsive">
             <table class="orders-table">
                 <thead>
                     <tr>
@@ -115,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <tbody>
                     ${orders.map(order => `
                         <tr>
-                            <td>${order.id}</td>
+                            <td><span class="order-id">${order.id}</span></td>
                             <td>${order.productName}</td>
                             <td>${order.quantity}</td>
                             <td>¥${(order.quantity * order.unitPrice).toFixed(2)}</td>
@@ -124,13 +129,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td>${formatDate(order.expectedDeliveryDate)}</td>
                             <td>${order.customerCode || '-'}</td>
                             <td>
-                                <a href="/shipment-dashboard/order_details.html?id=${order.id}" 
-                                   class="btn-view">查看详情</a>
+                                <a href="/shipment-dashboard/order_details.html?id=${order.id}" class="btn-view">查看详情</a>
                             </td>
                         </tr>
                     `).join('')}
                 </tbody>
             </table>
+            </div>
         `;
         ordersList.innerHTML = html;
     }
@@ -147,6 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function formatDate(dateString) {
+        if (!dateString) return '-';
         return new Date(dateString).toLocaleDateString('zh-CN');
     }
 
@@ -158,124 +164,221 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <div class="container">
-    <h1>运单列表</h1>
-    <button id="backToLoginBtn" class="btn-create" style="margin-bottom: 16px;">退出</button>
+    <h1><span class="icon">&#128179;</span> 订单列表</h1>
+    <button id="backToLoginBtn" class="btn-logout" style="margin-bottom: 16px;">退出</button>
     <div id="ordersList" class="orders-container"></div>
 </div>
 
 <style>
+body {
+    background: #f6f8fa;
+}
+.nav-menu {
+    display: flex;
+    gap: 24px;
+    background: #24292f;
+    padding: 18px 0 10px 0;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 24px;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 8px #0001;
+}
+.nav-menu a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.1em;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.nav-menu a.active, .nav-menu a:hover {
+    background: #0366d6;
+}
+.nav-menu .icon {
+    font-size: 1.2em;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 24px 18px 40px 18px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px #0001;
 }
 
-.btn-create {
-    padding: 10px 20px;
-    background-color: #28a745;
-    color: white;
+h1 {
+    font-size: 2.1rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.order-btn-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.btn-create, .btn-logout {
+    padding: 10px 22px;
     border: none;
     border-radius: 4px;
-    cursor: pointer;
     font-size: 16px;
-    margin-bottom: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+    box-shadow: 0 1px 4px #0001;
 }
-
+.btn-create {
+    background-color: #28a745;
+    color: #fff;
+}
 .btn-create:hover {
     background-color: #218838;
 }
+.btn-create.btn-secondary {
+    background-color: #007bff;
+}
+.btn-create.btn-secondary:hover {
+    background-color: #0056b3;
+}
+.btn-logout {
+    background-color: #dc3545;
+    color: #fff;
+}
+.btn-logout:hover {
+    background-color: #b52a37;
+}
 
 .orders-container {
-    margin-top: 20px;
+    margin-top: 10px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #0001;
+    background: #fff;
 }
 
 .orders-table {
     width: 100%;
     border-collapse: collapse;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: transparent;
+    min-width: 900px;
 }
-
 .orders-table th,
 .orders-table td {
-    padding: 12px;
+    padding: 14px 12px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
 }
-
 .orders-table th {
-    background-color: #f8f9fa;
-    font-weight: bold;
+    background-color: #f6f8fa;
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 1px;
 }
-
 .orders-table tr:hover {
-    background-color: #f5f5f5;
+    background-color: #f2f7ff;
+    transition: background 0.2s;
+}
+.order-id {
+    font-family: 'Fira Mono', 'Consolas', monospace;
+    background: #eaf5ff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 1em;
+    color: #0366d6;
+    font-weight: 600;
 }
 
 .btn-view {
-    padding: 6px 12px;
+    padding: 7px 16px;
     background-color: #007bff;
     color: white;
-    text-decoration: none;
+    border: none;
     border-radius: 4px;
-    font-size: 14px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.2s;
+    text-decoration: none;
 }
-
 .btn-view:hover {
     background-color: #0056b3;
 }
 
-.error {
-    color: #dc3545;
-    padding: 10px;
-    background-color: #f8d7da;
-    border-radius: 4px;
-    margin-top: 10px;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.empty-state p {
-    color: #666;
-    margin-bottom: 20px;
-    font-size: 16px;
-}
-
 .status-badge {
-    padding: 4px 8px;
+    padding: 4px 12px;
     border-radius: 4px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 1px;
+    display: inline-block;
 }
-
 .status-pending { 
     background-color: #fff3cd;
     color: #856404;
 }
-
 .status-processing { 
     background-color: #cce5ff;
     color: #004085;
 }
-
 .status-shipped { 
     background-color: #d4edda;
     color: #155724;
 }
-
 .status-delivered { 
     background-color: #d1e7dd;
     color: #0f5132;
 }
-
 .status-cancelled { 
     background-color: #f8d7da;
     color: #721c24;
 }
-</style> 
+
+.empty-state {
+    text-align: center;
+    padding: 48px 0 32px 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #0001;
+    color: #888;
+    font-size: 1.2em;
+    margin-top: 30px;
+}
+.empty-state .empty-img {
+    width: 64px;
+    margin-bottom: 18px;
+    opacity: 0.7;
+}
+.empty-state p {
+    margin-bottom: 18px;
+    font-size: 1.1em;
+}
+
+@media (max-width: 900px) {
+    .container {
+        padding: 10px 2vw 30px 2vw;
+    }
+    .orders-table th, .orders-table td {
+        padding: 8px 6px;
+    }
+    h1 {
+        font-size: 1.3rem;
+    }
+    .nav-menu {
+        gap: 10px;
+        padding: 10px 0 6px 0;
+    }
+}
+</style>

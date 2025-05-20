@@ -57,13 +57,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </select>
                 </div>
             `;
-            deleteBtnHtml = `<button onclick="deleteOrder('${order.id}')" class="btn-create" style="background-color:#dc3545;margin-left:10px;">删除订单</button>`;
+            deleteBtnHtml = `<button onclick="deleteOrder('${order.id}')" class="btn-delete">删除订单</button>`;
         }
 
         const html = `
             <div class="order-details">
                 <div class="order-header">
-                    <h2>订单详情</h2>
+                    <h2><span class="icon">&#128179;</span> 订单详情</h2>
                     ${statusUpdateHtml}
                 </div>
 
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <h3>基本信息</h3>
                         <div class="detail-item">
                             <span class="label">订单号：</span>
-                            <span class="value">${order.id}</span>
+                            <span class="value order-id">${order.id}</span>
                         </div>
                         <div class="detail-item">
                             <span class="label">创建时间：</span>
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="detail-item">
                             <span class="label">当前状态：</span>
-                            <span class="value status-${order.status}">${getStatusText(order.status)}</span>
+                            <span class="value status-badge status-${order.status}">${getStatusText(order.status)}</span>
                         </div>
                         <div class="detail-item">
                             <span class="label">客户代码：</span>
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div class="action-buttons">
-                    <button onclick="logoutAndGoLogin()" class="btn-create">退出</button>
+                    <button onclick="logoutAndGoLogin()" class="btn-logout">退出</button>
                     ${deleteBtnHtml}
                 </div>
             </div>
@@ -170,10 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (orderIndex !== -1) {
             // 更新订单状态
             orders[orderIndex].status = newStatus;
-            
-            // 保存到本地存储
             localStorage.setItem('orders', JSON.stringify(orders));
-            
             alert('订单状态更新成功！');
             loadOrderDetails(); // 重新加载订单详情
         } else {
@@ -202,123 +199,170 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <style>
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+body {
+    background: #f6f8fa;
 }
-
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 18px 40px 18px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px #0001;
+}
 .order-details {
     background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    padding: 20px;
+    box-shadow: 0 2px 8px #0001;
+    padding: 28px 24px 18px 24px;
 }
-
 .order-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    padding-bottom: 20px;
+    padding-bottom: 18px;
     border-bottom: 1px solid #eee;
 }
-
+.order-header h2 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
 .status-update {
     display: flex;
     align-items: center;
     gap: 10px;
 }
-
+.status-update label {
+    font-size: 15px;
+    color: #555;
+}
 .status-update select {
-    padding: 8px;
+    padding: 8px 14px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 15px;
+    background: #f8f9fa;
 }
-
 .details-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 30px;
     margin-bottom: 30px;
 }
-
 .detail-group {
     background: #f8f9fa;
-    padding: 20px;
+    padding: 20px 18px;
     border-radius: 8px;
+    box-shadow: 0 1px 4px #0001;
 }
-
 .detail-group h3 {
     margin: 0 0 15px 0;
     color: #333;
     font-size: 18px;
+    font-weight: 600;
 }
-
 .detail-item {
     margin-bottom: 12px;
     display: flex;
     flex-direction: column;
 }
-
 .detail-item .label {
-    color: #666;
+    color: #888;
     font-size: 14px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
-
 .detail-item .value {
-    color: #333;
+    color: #222;
     font-size: 16px;
+    word-break: break-all;
 }
-
 .detail-item .value.highlight {
     color: #28a745;
     font-weight: bold;
     font-size: 18px;
 }
-
 .detail-item.remarks {
     background: #fff;
     padding: 15px;
     border-radius: 4px;
     border: 1px solid #eee;
 }
-
-.status-pending { color: #ffc107; }
-.status-processing { color: #17a2b8; }
-.status-shipped { color: #007bff; }
-.status-delivered { color: #28a745; }
-.status-cancelled { color: #dc3545; }
-
+.order-id {
+    font-family: 'Fira Mono', 'Consolas', monospace;
+    background: #eaf5ff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 1em;
+    color: #0366d6;
+    font-weight: 600;
+}
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    display: inline-block;
+}
+.status-pending { background-color: #fff3cd; color: #856404; }
+.status-processing { background-color: #cce5ff; color: #004085; }
+.status-shipped { background-color: #d4edda; color: #155724; }
+.status-delivered { background-color: #d1e7dd; color: #0f5132; }
+.status-cancelled { background-color: #f8d7da; color: #721c24; }
 .action-buttons {
     display: flex;
     justify-content: flex-end;
+    gap: 14px;
     margin-top: 30px;
-    padding-top: 20px;
+    padding-top: 18px;
     border-top: 1px solid #eee;
 }
-
-.btn-secondary {
-    padding: 10px 20px;
-    background-color: #6c757d;
-    color: white;
+.btn-logout, .btn-delete {
+    padding: 10px 22px;
     border: none;
     border-radius: 4px;
-    cursor: pointer;
     font-size: 16px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+    box-shadow: 0 1px 4px #0001;
 }
-
-.btn-secondary:hover {
-    background-color: #5a6268;
+.btn-logout {
+    background-color: #007bff;
+    color: #fff;
 }
-
+.btn-logout:hover {
+    background-color: #0056b3;
+}
+.btn-delete {
+    background-color: #dc3545;
+    color: #fff;
+}
+.btn-delete:hover {
+    background-color: #b52a37;
+}
 .error {
     color: #dc3545;
     padding: 10px;
     background-color: #f8d7da;
     border-radius: 4px;
     margin-top: 10px;
+    text-align: center;
 }
-</style> 
+@media (max-width: 900px) {
+    .container {
+        padding: 10px 2vw 30px 2vw;
+    }
+    .order-details {
+        padding: 12px 6px 10px 6px;
+    }
+    .details-grid {
+        gap: 12px;
+    }
+}
+</style>
