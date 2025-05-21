@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <title>创建用户 | 运单管理系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f6f8fa; color: #222; }
+    header { background: #24292f; color: #fff; padding: 1rem 0; }
+    nav { max-width: 900px; margin: 0 auto; display: flex; align-items: center; }
+    nav a { color: #fff; text-decoration: none; margin-right: 2rem; font-weight: 500; }
+    nav a:hover { text-decoration: underline; }
+    .container { max-width: 900px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 2rem; }
+    footer { text-align: center; color: #888; padding: 1rem 0; margin-top: 2rem; font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (!user || user.role !== 'trader') {
+        window.location.href = '/shipment-dashboard/shipments.html';
+        return;
+    }
+
+    const form = document.getElementById('createUserForm');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // 获取表单数据
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const name = document.getElementById('name').value;
+        const role = document.getElementById('role').value;
+        const phone = document.getElementById('phone').value;
+        const email = document.getElementById('email').value;
+        const customerCode = document.getElementById('customerCode').value;
+
+        // 创建新用户
+        const newUser = {
+            username: username,
+            password: password,
+            name: name,
+            role: role,
+            phone: phone,
+            email: email,
+            customerCode: customerCode,
+            createdAt: new Date().toISOString()
+        };
+
+        // 获取现有用户
+        fetch('/shipment-dashboard/data/users.json')
+            .then(response => response.json())
+            .then(data => {
+                let users = data.users || [];
+                
+                // 检查用户名是否已存在
+                if (users.some(u => u.username === username)) {
+                    alert('用户名已存在！');
+                    return;
+                }
+
+                // 检查客户代码是否已存在（如果是客户角色）
+                if (role === 'customer' && users.some(u => u.customerCode === customerCode)) {
+                    alert('客户代码已存在！');
+                    return;
+                }
+
+                // 添加新用户
+                users.push(newUser);
+                
+                // 保存更新后的用户列表
+                localStorage.setItem('users', JSON.stringify(users));
+
+                alert('用户创建成功！');
+                window.location.href = '/shipment-dashboard/user_list.html';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('创建用户失败，请重试！');
+            });
+    });
+
+    // 根据角色显示/隐藏客户代码输入框
+    document.getElementById('role').addEventListener('change', function(e) {
+        const customerCodeGroup = document.getElementById('customerCodeGroup');
+        customerCodeGroup.style.display = e.target.value === 'customer' ? 'block' : 'none';
+    });
+});
+</script>
+
+<div class="container">
+    <h1>创建用户</h1>
+    
+    <form id="createUserForm" class="user-form">
+        <div class="form-group">
+            <label for="username">用户名：</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">密码：</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <div class="form-group">
+            <label for="name">姓名：</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="role">角色：</label>
+            <select id="role" name="role" required>
+                <option value="customer">客户</option>
+                <option value="trader">贸易商</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="phone">电话：</label>
+            <input type="tel" id="phone" name="phone" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email">邮箱：</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+
+        <div class="form-group" id="customerCodeGroup" style="display: none;">
+            <label for="customerCode">客户代码：</label>
+            <input type="text" id="customerCode" name="customerCode">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">创建用户</button>
+            <button type="button" class="btn-secondary" onclick="window.location.href='/shipment-dashboard/user_list.html'">取消</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.user-form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.form-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+</style> 
+  </main>
+  <footer>
+    &copy; 2025 运单管理系统. 保留所有权利。
+  </footer>
+</body>
+</html>

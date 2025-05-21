@@ -7,10 +7,7 @@
 <loc>http://localhost:4000/shipment-dashboard/create_order.html</loc>
 </url>
 <url>
-<loc>http://localhost:4000/shipment-dashboard/create_shipment.html</loc>
-</url>
-<url>
-<loc>http://localhost:4000/shipment-dashboard/customer_query.html</loc>
+<loc>http://localhost:4000/shipment-dashboard/create_user.html</loc>
 </url>
 <url>
 <loc>http://localhost:4000/shipment-dashboard/login.html</loc>
@@ -20,9 +17,6 @@
 </url>
 <url>
 <loc>http://localhost:4000/shipment-dashboard/orders.html</loc>
-</url>
-<url>
-<loc>http://localhost:4000/shipment-dashboard/shipments.html</loc>
 </url>
 <url>
 <loc>http://localhost:4000/shipment-dashboard/user_list.html</loc>
