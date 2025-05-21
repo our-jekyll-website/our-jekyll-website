@@ -21,17 +21,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 填充客户选择下拉框
             const customerSelect = document.getElementById('customerCode');
             customerSelect.innerHTML = '<option value="">请选择客户</option>' +
-                customers.map(c => `<option value="${c.customerCode}" data-contact="${c.name}" data-phone="${c.phone || ''}">${c.name} (${c.customerCode})</option>`).join('');
-            // 联系人下拉框
-            const contactSelect = document.getElementById('contactPerson');
-            contactSelect.innerHTML = '<option value="">请选择联系人</option>' +
-                customers.map(c => `<option value="${c.name}" data-code="${c.customerCode}" data-phone="${c.phone || ''}">${c.name}</option>`).join('');
-            // 选择联系人时自动填充客户代码和联系电话
-            contactSelect.onchange = function() {
-                const selected = contactSelect.options[contactSelect.selectedIndex];
-                document.getElementById('customerCode').value = selected.getAttribute('data-code');
-                document.getElementById('contactPhone').value = selected.getAttribute('data-phone');
-            };
+                customers.map(c => `<option value="${c.customerCode}">${c.name} (${c.customerCode})</option>`).join('');
         } catch (error) {
             console.error('加载客户列表失败:', error);
         }
@@ -40,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     const form = document.getElementById('createOrderForm');
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
         e.preventDefault();
 
         // 获取表单数据
@@ -65,9 +55,29 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
+        // 验证联系人信息
+        if (!contactPerson || !contactPhone) {
+            alert('请填写完整的联系人信息');
+            return;
+        }
+
         // 创建新订单
+        let shippingUpdates = [];
+        if (user.role === 'trader') {
+            // 获取trader position
+            let position = '';
+            try {
+                const response = await fetch('/shipment-dashboard/data/users.json');
+                const data = await response.json();
+                const trader = data.users.find(u => u.username === user.username && u.role === 'trader');
+                if (trader && trader.position) position = trader.position;
+            } catch (e) {}
+            if (position) {
+                shippingUpdates.push({ location: position, timestamp: new Date().toISOString() });
+            }
+        }
         const newOrder = {
-            id: 'ORD' + Date.now(),  // 生成唯一订单号
+            id: 'ORD' + Date.now(),
             productName: productName,
             quantity: quantity,
             unitPrice: unitPrice,
@@ -78,7 +88,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             deliveryAddress: deliveryAddress,
             contactPerson: contactPerson,
             contactPhone: contactPhone,
-            remarks: remarks
+            remarks: remarks,
+            shippingUpdates: shippingUpdates
         };
 
         // 获取现有订单
@@ -89,8 +100,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // 保存更新后的订单列表
         localStorage.setItem('orders', JSON.stringify(orders));
-
-        // 跳转到订单列表页面
+        
+        alert('订单创建成功！');
         window.location.href = '/shipment-dashboard/orders.html';
     });
 });
@@ -129,9 +140,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         <div class="form-group">
             <label for="contactPerson">联系人：</label>
-            <select id="contactPerson" name="contactPerson" required>
-                <option value="">请选择联系人</option>
-            </select>
+            <input type="text" id="contactPerson" name="contactPerson" required>
         </div>
 
         <div class="form-group">
@@ -168,10 +177,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 24px;
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .form-group label {
@@ -181,15 +195,22 @@ document.addEventListener('DOMContentLoaded', async function() {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 16px;
+    box-sizing: border-box;
+}
+
+.form-group textarea {
+    resize: vertical;
 }
 
 .form-actions {
+    grid-column: 1 / span 2;
     margin-top: 30px;
     display: flex;
     gap: 10px;
@@ -220,5 +241,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 .btn-secondary:hover {
     background-color: #5a6268;
+}
+
+@media (max-width: 700px) {
+    .order-form {
+        grid-template-columns: 1fr;
+    }
+    .form-actions {
+        grid-column: 1 / span 1;
+    }
 }
 </style> 
