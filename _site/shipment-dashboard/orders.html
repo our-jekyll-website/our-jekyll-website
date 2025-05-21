@@ -40,29 +40,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     document.body.insertBefore(navMenu, document.body.firstChild);
 
-    // 添加创建订单按钮和用户列表按钮（仅贸易商可见）
+    // 按钮组
+    const buttonContainer = document.querySelector('.order-btn-group');
     if (user.role === 'trader') {
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'order-btn-group';
-        
         const createOrderBtn = document.createElement('button');
         createOrderBtn.textContent = '创建新订单';
         createOrderBtn.className = 'btn-create';
         createOrderBtn.onclick = function() {
             window.location.href = '/shipment-dashboard/create_order.html';
         };
-        
+
         const userListBtn = document.createElement('button');
         userListBtn.textContent = '用户列表';
         userListBtn.className = 'btn-create btn-secondary';
         userListBtn.onclick = function() {
             window.location.href = '/shipment-dashboard/user_list.html';
         };
-        
+
         buttonContainer.appendChild(createOrderBtn);
         buttonContainer.appendChild(userListBtn);
-        document.querySelector('h1').insertAdjacentElement('afterend', buttonContainer);
     }
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.textContent = '退出';
+    logoutBtn.className = 'btn-logout';
+    logoutBtn.onclick = function() {
+        sessionStorage.removeItem('user');
+        window.location.href = '/shipment-dashboard/login.html';
+    };
+    buttonContainer.appendChild(logoutBtn);
 
     // 加载订单列表
     loadOrders();
@@ -178,8 +184,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <div class="container">
+    <div class="order-btn-group">
+        <!-- 创建新订单按钮，仅贸易商可见 -->
+        <!-- 用户列表按钮，仅贸易商可见 -->
+        <!-- 退出按钮，所有人可见 -->
+    </div>
     <h1><span class="icon">&#128179;</span> 订单列表</h1>
-    <button id="backToLoginBtn" class="btn-logout" style="margin-bottom: 16px;">退出</button>
     <div id="ordersList" class="orders-container"></div>
 </div>
 
@@ -237,39 +247,54 @@ h1 {
 
 .order-btn-group {
     display: flex;
-    gap: 12px;
-    margin-bottom: 18px;
+    gap: 16px;
+    margin-bottom: 22px;
+    justify-content: flex-start;
+    align-items: center;
 }
 
 .btn-create, .btn-logout {
-    padding: 10px 22px;
+    padding: 11px 28px;
     border: none;
-    border-radius: 4px;
-    font-size: 16px;
+    border-radius: 6px;
+    font-size: 17px;
     cursor: pointer;
-    font-weight: 500;
-    transition: background 0.2s;
-    box-shadow: 0 1px 4px #0001;
+    font-weight: 600;
+    transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
+    box-shadow: 0 2px 8px #007bff22, 0 1.5px 4px #0001;
+    letter-spacing: 1px;
+    outline: none;
+    position: relative;
+    overflow: hidden;
 }
 .btn-create {
-    background-color: #28a745;
+    background: linear-gradient(90deg, #28a745 70%, #34d058 100%);
     color: #fff;
+    border: 1.5px solid #28a745;
 }
-.btn-create:hover {
-    background-color: #218838;
+.btn-create:hover, .btn-create:focus {
+    background: linear-gradient(90deg, #218838 70%, #43e97b 100%);
+    box-shadow: 0 4px 16px #28a74533;
+    transform: translateY(-2px) scale(1.03);
 }
 .btn-create.btn-secondary {
-    background-color: #007bff;
+    background: linear-gradient(90deg, #007bff 70%, #6ec1e4 100%);
+    border: 1.5px solid #007bff;
 }
-.btn-create.btn-secondary:hover {
-    background-color: #0056b3;
+.btn-create.btn-secondary:hover, .btn-create.btn-secondary:focus {
+    background: linear-gradient(90deg, #0056b3 70%, #6ec1e4 100%);
+    box-shadow: 0 4px 16px #007bff33;
+    transform: translateY(-2px) scale(1.03);
 }
 .btn-logout {
-    background-color: #dc3545;
+    background: linear-gradient(90deg, #dc3545 70%, #ff7675 100%);
     color: #fff;
+    border: 1.5px solid #dc3545;
 }
-.btn-logout:hover {
-    background-color: #b52a37;
+.btn-logout:hover, .btn-logout:focus {
+    background: linear-gradient(90deg, #b52a37 70%, #ff7675 100%);
+    box-shadow: 0 4px 16px #dc354533;
+    transform: translateY(-2px) scale(1.03);
 }
 
 .orders-container {
@@ -393,6 +418,16 @@ h1 {
     .nav-menu {
         gap: 10px;
         padding: 10px 0 6px 0;
+    }
+    .order-btn-group {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    .btn-create, .btn-logout {
+        width: 100%;
+        font-size: 1em;
+        padding: 10px 0;
     }
 }
 </style>

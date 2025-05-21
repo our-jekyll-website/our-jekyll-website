@@ -3,6 +3,8 @@ layout: default
 title: 订单详情
 ---
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const user = JSON.parse(sessionStorage.getItem('user'));
@@ -57,95 +59,112 @@ document.addEventListener('DOMContentLoaded', function() {
                     </select>
                 </div>
             `;
-            deleteBtnHtml = `<button onclick="deleteOrder('${order.id}')" class="btn-delete">删除订单</button>`;
+            deleteBtnHtml = `<button onclick="deleteOrder('${order.id}')" class="btn-create" style="background-color:#dc3545;margin-left:10px;">删除订单</button>`;
         }
 
-        const html = `
-            <div class="order-details">
-                <div class="order-header">
-                    <h2><span class="icon">&#128179;</span> 订单详情</h2>
-                    ${statusUpdateHtml}
+        // 添加物流信息显示
+        let shippingInfoHtml = '';
+        let updateLocationBtn = '';
+        if (user.role === 'trader' && order.status !== 'delivered' && order.status !== 'cancelled') {
+            updateLocationBtn = `<button class='btn-create' style='margin-bottom:10px;' onclick="updateShippingLocation('${order.id}')">更新当前位置</button>`;
+        }
+        // 轨迹起点和状态逻辑
+        let shippingUpdates = order.shippingUpdates ? [...order.shippingUpdates] : [];
+        // 若无轨迹则补充吉林白城
+        if (!shippingUpdates.length) {
+            shippingUpdates.unshift({ location: '吉林白城', timestamp: order.createdAt });
+        }
+        // 状态为待处理/处理中时，轨迹和当前位置都只显示首节点
+        let currentLocation = shippingUpdates[0].location;
+        let canEdit = user.role === 'trader' && order.status !== 'cancelled' && order.status !== 'pending' && order.status !== 'processing' && order.status !== 'delivered';
+        let canAdd = user.role === 'trader' && order.status !== 'cancelled' && order.status !== 'pending' && order.status !== 'processing' && order.status !== 'delivered';
+        if (order.status === 'pending' || order.status === 'processing') {
+            shippingUpdates = [shippingUpdates[0]];
+        } else {
+            // 其他状态下当前位置为轨迹最后一个点
+            currentLocation = shippingUpdates[shippingUpdates.length - 1].location;
+        }
+        // 物流轨迹编辑和删除按钮
+        function getEditBtn(idx) {
+            // 第一个点不可编辑/删除，已取消状态不可编辑/删除
+            if (idx === 0 || order.status === 'cancelled') return '';
+            let btns = '';
+            if (canEdit) {
+                btns += `<button class='btn-secondary' style='margin-left:8px;padding:2px 8px;font-size:12px' onclick="editShippingUpdate('${order.id}',${idx})">编辑</button>`;
+                btns += `<button class='btn-secondary' style='margin-left:4px;padding:2px 8px;font-size:12px;background:#dc3545;color:#fff' onclick="deleteShippingUpdate('${order.id}',${idx})">删除</button>`;
+            }
+            return btns;
+        }
+        // 添加轨迹按钮
+        let addLocationBtn = '';
+        if (canAdd) {
+            addLocationBtn = `<button class='btn-create' style='margin-bottom:10px;' onclick="addShippingLocation('${order.id}')">添加物流节点</button>`;
+        }
+        // 物流信息显示
+        shippingInfoHtml = `
+            <div class="detail-group">
+                <h3>物流信息</h3>
+                ${addLocationBtn}
+                <div class="detail-item">
+                    <span class="label">当前位置：</span>
+                    <span class="value">${currentLocation}</span>
                 </div>
-
-                <div class="details-grid">
-                    <div class="detail-group">
-                        <h3>基本信息</h3>
-                        <div class="detail-item">
-                            <span class="label">订单号：</span>
-                            <span class="value order-id">${order.id}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">创建时间：</span>
-                            <span class="value">${formatDate(order.createdAt)}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">当前状态：</span>
-                            <span class="value status-badge status-${order.status}">${getStatusText(order.status)}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">客户代码：</span>
-                            <span class="value">${order.customerCode}</span>
-                        </div>
-                    </div>
-
-                    <div class="detail-group">
-                        <h3>产品信息</h3>
-                        <div class="detail-item">
-                            <span class="label">产品名称：</span>
-                            <span class="value">${order.productName}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">数量：</span>
-                            <span class="value">${order.quantity}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">单价：</span>
-                            <span class="value">¥${order.unitPrice.toFixed(2)}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">总金额：</span>
-                            <span class="value highlight">¥${totalAmount.toFixed(2)}</span>
-                        </div>
-                    </div>
-
-                    <div class="detail-group">
-                        <h3>配送信息</h3>
-                        <div class="detail-item">
-                            <span class="label">收货地址：</span>
-                            <span class="value">${order.deliveryAddress}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">联系人：</span>
-                            <span class="value">${order.contactPerson}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">联系电话：</span>
-                            <span class="value">${order.contactPhone}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">期望送达日期：</span>
-                            <span class="value">${formatDate(order.expectedDeliveryDate)}</span>
-                        </div>
-                    </div>
-
-                    ${order.remarks ? `
-                        <div class="detail-group">
-                            <h3>备注信息</h3>
-                            <div class="detail-item remarks">
-                                <span class="value">${order.remarks}</span>
+                <div class="detail-item">
+                    <span class="label">物流轨迹：</span>
+                    <div class="shipping-timeline">
+                        ${shippingUpdates.map((update, idx) => `
+                            <div class="timeline-item">
+                                <div class="timeline-time">${formatDate(update.timestamp)}</div>
+                                <div class="timeline-location">${update.location}${getEditBtn(idx)}</div>
                             </div>
-                        </div>
-                    ` : ''}
-                </div>
-
-                <div class="action-buttons">
-                    <button onclick="window.location.href='/shipment-dashboard/orders.html'" class="btn-back">订单列表</button>
-                    <button onclick="logoutAndGoLogin()" class="btn-logout">退出</button>
-                    ${deleteBtnHtml}
+                        `).join('')}
+                    </div>
                 </div>
             </div>
         `;
+
+        const html = `
+            <div class="order-header-row">
+                ${statusUpdateHtml}
+            </div>
+            <div class="order-details-grid">
+                <div class="order-card">${basicInfoHtml()}</div>
+                <div class="order-card">${productInfoHtml()}</div>
+                <div class="order-card">${deliveryInfoHtml()}</div>
+                <div class="order-card">${shippingInfoHtml}</div>
+                ${order.remarks ? `<div class="order-card">${remarksInfoHtml()}</div>` : ''}
+            </div>
+            <div class="action-buttons">
+                <button onclick="logoutAndGoLogin()" class="btn-create">退出</button>
+                ${deleteBtnHtml}
+            </div>
+        `;
         orderDetails.innerHTML = html;
+
+        function basicInfoHtml() {
+            return `<h3>基本信息</h3>
+                <div class="detail-item"><span class="label">订单号：</span><span class="value">${order.id}</span></div>
+                <div class="detail-item"><span class="label">创建时间：</span><span class="value">${formatDate(order.createdAt)}</span></div>
+                <div class="detail-item"><span class="label">当前状态：</span><span class="value status-${order.status}">${getStatusText(order.status)}</span></div>
+                <div class="detail-item"><span class="label">客户代码：</span><span class="value">${order.customerCode}</span></div>`;
+        }
+        function productInfoHtml() {
+            return `<h3>产品信息</h3>
+                <div class="detail-item"><span class="label">产品名称：</span><span class="value">${order.productName}</span></div>
+                <div class="detail-item"><span class="label">数量：</span><span class="value">${order.quantity}</span></div>
+                <div class="detail-item"><span class="label">单价：</span><span class="value">¥${order.unitPrice.toFixed(2)}</span></div>
+                <div class="detail-item"><span class="label">总金额：</span><span class="value highlight">¥${totalAmount.toFixed(2)}</span></div>`;
+        }
+        function deliveryInfoHtml() {
+            return `<h3>配送信息</h3>
+                <div class="detail-item"><span class="label">收货地址：</span><span class="value">${order.deliveryAddress}</span></div>
+                <div class="detail-item"><span class="label">联系人：</span><span class="value">${order.contactPerson}</span></div>
+                <div class="detail-item"><span class="label">联系电话：</span><span class="value">${order.contactPhone}</span></div>
+                <div class="detail-item"><span class="label">期望送达日期：</span><span class="value">${formatDate(order.expectedDeliveryDate)}</span></div>`;
+        }
+        function remarksInfoHtml() {
+            return `<h3>备注信息</h3><div class="detail-item remarks"><span class="value">${order.remarks}</span></div>`;
+        }
     }
 
     function getStatusText(status) {
@@ -163,17 +182,40 @@ document.addEventListener('DOMContentLoaded', function() {
         return new Date(dateString).toLocaleDateString('zh-CN');
     }
 
-    window.updateOrderStatus = function(orderId, newStatus) {
-        // 从本地存储获取订单数据
+    window.updateShippingLocation = function(orderId) {
         let orders = JSON.parse(localStorage.getItem('orders')) || [];
         const orderIndex = orders.findIndex(o => o.id === orderId);
+        if (orderIndex === -1) return;
+        const location = prompt('请输入新的货物位置：');
+        if (location) {
+            orders[orderIndex].currentLocation = location;
+            orders[orderIndex].shippingUpdates = orders[orderIndex].shippingUpdates || [];
+            orders[orderIndex].shippingUpdates.push({
+                location: location,
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('orders', JSON.stringify(orders));
+            loadOrderDetails();
+        }
+    };
 
+    window.updateOrderStatus = function(orderId, newStatus) {
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        const orderIndex = orders.findIndex(o => o.id === orderId);
         if (orderIndex !== -1) {
-            // 更新订单状态
+            // 如果变为已送达，自动追加收货地址
+            if (newStatus === 'delivered') {
+                orders[orderIndex].currentLocation = orders[orderIndex].deliveryAddress;
+                orders[orderIndex].shippingUpdates = orders[orderIndex].shippingUpdates || [];
+                orders[orderIndex].shippingUpdates.push({
+                    location: orders[orderIndex].deliveryAddress,
+                    timestamp: new Date().toISOString()
+                });
+            }
             orders[orderIndex].status = newStatus;
             localStorage.setItem('orders', JSON.stringify(orders));
             alert('订单状态更新成功！');
-            loadOrderDetails(); // 重新加载订单详情
+            loadOrderDetails();
         } else {
             alert('更新失败，请重试');
         }
@@ -192,178 +234,283 @@ document.addEventListener('DOMContentLoaded', function() {
         sessionStorage.removeItem('user');
         window.location.href = '/shipment-dashboard/login.html';
     };
+
+    let map, marker, mapCallback, pickedLatLng;
+    function showMapPicker(callback, oldLoc) {
+        document.getElementById('mapModal').style.display = 'flex';
+        setTimeout(() => {
+            if (!map) {
+                map = L.map('map').setView([45.6196, 122.8411], 5); // 吉林白城附近
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                }).addTo(map);
+                map.on('click', function(e) {
+                    if (marker) map.removeLayer(marker);
+                    marker = L.marker(e.latlng).addTo(map);
+                    pickedLatLng = e.latlng;
+                });
+            } else {
+                map.setView([45.6196, 122.8411], 5);
+                if (marker) map.removeLayer(marker);
+            }
+            pickedLatLng = null;
+        }, 100);
+        mapCallback = callback;
+    }
+    document.getElementById('mapCancelBtn').onclick = function() {
+        document.getElementById('mapModal').style.display = 'none';
+    };
+    document.getElementById('mapOkBtn').onclick = async function() {
+        if (!pickedLatLng) { alert('请在地图上选择位置'); return; }
+        // 逆地理编码（用nominatim，简单实现）
+        let name = `${pickedLatLng.lat.toFixed(4)},${pickedLatLng.lng.toFixed(4)}`;
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pickedLatLng.lat}&lon=${pickedLatLng.lng}`);
+            const data = await res.json();
+            if (data && data.display_name) name = data.display_name;
+        } catch(e) {}
+        document.getElementById('mapModal').style.display = 'none';
+        if (mapCallback) mapCallback(name);
+    };
+
+    window.editShippingUpdate = function(orderId, idx) {
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        const orderIndex = orders.findIndex(o => o.id === orderId);
+        if (orderIndex === -1) return;
+        showMapPicker(function(newLoc) {
+            if (newLoc) {
+                orders[orderIndex].shippingUpdates[idx].location = newLoc;
+                // 如果是最后一条，currentLocation也要同步
+                if (idx === orders[orderIndex].shippingUpdates.length - 1) {
+                    orders[orderIndex].currentLocation = newLoc;
+                }
+                localStorage.setItem('orders', JSON.stringify(orders));
+                loadOrderDetails();
+            }
+        }, orders[orderIndex].shippingUpdates[idx].location);
+    };
+
+    window.addShippingLocation = function(orderId) {
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        const orderIndex = orders.findIndex(o => o.id === orderId);
+        if (orderIndex === -1) return;
+        showMapPicker(function(newLoc) {
+            if (newLoc) {
+                const now = new Date().toISOString();
+                orders[orderIndex].shippingUpdates = orders[orderIndex].shippingUpdates || [];
+                orders[orderIndex].shippingUpdates.push({ location: newLoc, timestamp: now });
+                orders[orderIndex].currentLocation = newLoc;
+                localStorage.setItem('orders', JSON.stringify(orders));
+                loadOrderDetails();
+            }
+        });
+    };
+
+    window.deleteShippingUpdate = function(orderId, idx) {
+        if (!confirm('确定要删除该物流节点吗？')) return;
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        const orderIndex = orders.findIndex(o => o.id === orderId);
+        if (orderIndex === -1) return;
+        // 不能删除第一个节点
+        if (idx === 0) return;
+        orders[orderIndex].shippingUpdates.splice(idx, 1);
+        // 如果删除的是最后一个节点，currentLocation要同步
+        if (idx === orders[orderIndex].shippingUpdates.length) {
+            orders[orderIndex].currentLocation = orders[orderIndex].shippingUpdates[orders[orderIndex].shippingUpdates.length - 1].location;
+        }
+        localStorage.setItem('orders', JSON.stringify(orders));
+        loadOrderDetails();
+    };
+
+    // 返回订单列表
+    window.goBackToOrders = function() {
+        window.location.href = '/shipment-dashboard/orders.html';
+    };
 });
 </script>
 
 <div class="container">
+    <div class="top-bar">
+        <button onclick="goBackToOrders()" class="btn-back">
+            ← 返回订单列表
+        </button>
+        <span class="page-title">订单详情</span>
+    </div>
     <div id="orderDetails" class="order-details-container"></div>
 </div>
 
+<div id="mapModal" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:16px;border-radius:8px;max-width:90vw;max-height:90vh;position:relative;">
+    <div id="map" style="width:500px;height:400px;"></div>
+    <div style="margin-top:8px;text-align:right;">
+      <button id="mapCancelBtn" class="btn-secondary">取消</button>
+      <button id="mapOkBtn" class="btn-primary">确定</button>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <style>
-body {
-    background: #f6f8fa;
-}
 .container {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 24px 18px 40px 18px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 12px #0001;
+    padding: 20px;
 }
-.order-details {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px #0001;
-    padding: 28px 24px 18px 24px;
-}
-.order-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid #eee;
-}
-.order-header h2 {
-    font-size: 1.7rem;
-    font-weight: 600;
+
+.top-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 0;
+    margin-bottom: 28px;
+    gap: 18px;
+    padding: 10px 0 18px 0;
+    border-bottom: 1.5px solid #e5e5e5;
+    background: linear-gradient(90deg, #f8fafc 60%, #e3f0ff 100%);
+    border-radius: 8px 8px 0 0;
 }
-.status-update {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.status-update label {
-    font-size: 15px;
-    color: #555;
-}
-.status-update select {
-    padding: 8px 14px;
-    border: 1px solid #ddd;
+
+.btn-back {
+    background: #007bff;
+    color: #fff;
+    border: none;
     border-radius: 4px;
-    font-size: 15px;
-    background: #f8f9fa;
+    padding: 8px 18px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 6px rgba(0,123,255,0.08);
 }
-.details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 30px;
-    margin-bottom: 30px;
+.btn-back:hover {
+    background: #0056b3;
 }
-.detail-group {
-    background: #f8f9fa;
-    padding: 20px 18px;
-    border-radius: 8px;
-    box-shadow: 0 1px 4px #0001;
-}
-.detail-group h3 {
-    margin: 0 0 15px 0;
-    color: #333;
-    font-size: 18px;
+
+.page-title {
+    font-size: 22px;
     font-weight: 600;
+    color: #222;
+    letter-spacing: 1px;
 }
-.detail-item {
+
+.order-details-container {
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px);}
+    to { opacity: 1; transform: translateY(0);}
+}
+
+/* 让卡片更有层次感 */
+.order-card {
+    background: linear-gradient(135deg, #fafdff 80%, #e3f0ff 100%);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,123,255,0.07);
+    padding: 28px 22px 20px 22px;
+    min-width: 0;
+    border: 1px solid #e3f0ff;
+    transition: box-shadow 0.2s;
+}
+.order-card:hover {
+    box-shadow: 0 8px 24px rgba(0,123,255,0.13);
+}
+
+.detail-group h3 {
+    color: #007bff;
+    font-size: 19px;
     margin-bottom: 12px;
-    display: flex;
-    flex-direction: column;
 }
+
 .detail-item .label {
     color: #888;
     font-size: 14px;
     margin-bottom: 2px;
 }
+
 .detail-item .value {
     color: #222;
     font-size: 16px;
-    word-break: break-all;
 }
+
 .detail-item .value.highlight {
     color: #28a745;
     font-weight: bold;
-    font-size: 18px;
+    font-size: 19px;
 }
-.detail-item.remarks {
-    background: #fff;
-    padding: 15px;
+
+.shipping-timeline {
+    margin-top: 10px;
+    border-left: 2.5px solid #007bff;
+    padding-left: 22px;
+}
+
+.timeline-item:before {
+    left: -28px;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #007bff 60%, #6ec1e4 100%);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,123,255,0.10);
+}
+
+.timeline-time {
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 2px;
+}
+
+.timeline-location {
+    font-size: 15px;
+    color: #222;
+}
+
+.btn-create {
+    background: #28a745;
+    color: #fff;
+    border: none;
     border-radius: 4px;
-    border: 1px solid #eee;
+    padding: 8px 18px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-right: 8px;
+    transition: background 0.2s;
 }
-.order-id {
-    font-family: 'Fira Mono', 'Consolas', monospace;
-    background: #eaf5ff;
-    padding: 3px 8px;
+.btn-create:hover {
+    background: #218838;
+}
+
+.btn-secondary {
+    padding: 8px 16px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
     border-radius: 4px;
-    font-size: 1em;
-    color: #0366d6;
-    font-weight: 600;
+    cursor: pointer;
+    font-size: 15px;
+    margin-right: 6px;
 }
-.status-badge {
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    display: inline-block;
+.btn-secondary:hover {
+    background-color: #5a6268;
 }
-.status-pending { background-color: #fff3cd; color: #856404; }
-.status-processing { background-color: #cce5ff; color: #004085; }
-.status-shipped { background-color: #d4edda; color: #155724; }
-.status-delivered { background-color: #d1e7dd; color: #0f5132; }
-.status-cancelled { background-color: #f8d7da; color: #721c24; }
+
 .action-buttons {
     display: flex;
     justify-content: flex-end;
-    gap: 14px;
     margin-top: 30px;
-    padding-top: 18px;
+    padding-top: 20px;
     border-top: 1px solid #eee;
+    gap: 12px;
 }
-.btn-logout, .btn-delete {
-    padding: 10px 22px;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.2s;
-    box-shadow: 0 1px 4px #0001;
-}
-.btn-logout {
-    background-color: #007bff;
-    color: #fff;
-}
-.btn-logout:hover {
-    background-color: #0056b3;
-}
-.btn-delete {
-    background-color: #dc3545;
-    color: #fff;
-}
-.btn-delete:hover {
-    background-color: #b52a37;
-}
-.error {
-    color: #dc3545;
-    padding: 10px;
-    background-color: #f8d7da;
-    border-radius: 4px;
-    margin-top: 10px;
-    text-align: center;
-}
+
 @media (max-width: 900px) {
-    .container {
-        padding: 10px 2vw 30px 2vw;
+    .order-details-grid {
+        grid-template-columns: 1fr;
     }
-    .order-details {
-        padding: 12px 6px 10px 6px;
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
-    .details-grid {
-        gap: 12px;
+    .order-card {
+        padding: 18px 8px 14px 8px;
     }
 }
 </style>
