@@ -22,19 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const role = document.getElementById('role').value;
         const phone = document.getElementById('phone').value;
         const email = document.getElementById('email').value;
-        const customerCode = document.getElementById('customerCode').value;
-
-        // 创建新用户
-        const newUser = {
-            username: username,
-            password: password,
-            name: name,
-            role: role,
-            phone: phone,
-            email: email,
-            customerCode: customerCode,
-            createdAt: new Date().toISOString()
-        };
 
         // 获取现有用户
         fetch('/shipment-dashboard/data/users.json')
@@ -48,16 +35,36 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
-                // 检查客户代码是否已存在（如果是客户角色）
-                if (role === 'customer' && users.some(u => u.customerCode === customerCode)) {
-                    alert('客户代码已存在！');
-                    return;
+                // 如果是客户角色，自动生成客户代码
+                let customerCode = null;
+                if (role === 'customer') {
+                    // 获取当前最大的客户代码编号
+                    const customerCodes = users
+                        .filter(u => u.role === 'customer' && u.customerCode)
+                        .map(u => parseInt(u.customerCode.replace('CUST', '')))
+                        .filter(num => !isNaN(num));
+                    
+                    const maxCode = Math.max(0, ...customerCodes);
+                    const nextCode = maxCode + 1;
+                    customerCode = `CUST${String(nextCode).padStart(3, '0')}`;
                 }
+
+                // 创建新用户
+                const newUser = {
+                    username: username,
+                    password: password,
+                    name: name,
+                    role: role,
+                    phone: phone,
+                    email: email,
+                    customerCode: customerCode,
+                    createdAt: new Date().toISOString()
+                };
 
                 // 添加新用户
                 users.push(newUser);
                 
-                // 保存更新后的用户列表
+                // 保存更新后的用户列表到 localStorage
                 localStorage.setItem('users', JSON.stringify(users));
 
                 alert('用户创建成功！');
@@ -72,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 根据角色显示/隐藏客户代码输入框
     document.getElementById('role').addEventListener('change', function(e) {
         const customerCodeGroup = document.getElementById('customerCodeGroup');
-        customerCodeGroup.style.display = e.target.value === 'customer' ? 'block' : 'none';
+        customerCodeGroup.style.display = e.target.value === 'customer' ? 'none' : 'none'; // 始终隐藏，因为现在是自动生成的
     });
 });
 </script>

@@ -27,10 +27,19 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // 加载用户列表
     try {
-        const response = await fetch('/shipment-dashboard/data/users.json');
-        const data = await response.json();
-        const customers = data.users.filter(u => u.role === 'customer');
-        displayUsers(customers);
+        // 从 localStorage 获取用户数据
+        const usersData = localStorage.getItem('users');
+        if (usersData) {
+            const data = JSON.parse(usersData);
+            const customers = data.filter(u => u.role === 'customer');
+            displayUsers(customers);
+        } else {
+            // 如果没有本地数据，从服务器获取
+            const response = await fetch('/shipment-dashboard/data/users.json');
+            const data = await response.json();
+            const customers = data.users.filter(u => u.role === 'customer');
+            displayUsers(customers);
+        }
     } catch (error) {
         console.error('加载用户列表失败:', error);
     }
@@ -65,6 +74,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             <td>${user.name}</td>
                             <td>
                                 <button onclick="viewUserOrders('${user.username}')" class="btn-view">查看订单</button>
+                                <button onclick="deleteUser('${user.username}')" class="btn-delete">删除用户</button>
                             </td>
                         </tr>
                     `).join('')}
@@ -78,6 +88,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.viewUserOrders = function(username) {
         sessionStorage.setItem('filterUsername', username);
         window.location.href = '/shipment-dashboard/orders.html?filter=user';
+    };
+
+    window.deleteUser = function(username) {
+        if (confirm('确定要删除该用户吗？此操作不可恢复。')) {
+            // 从 localStorage 获取用户数据
+            const usersData = localStorage.getItem('users');
+            if (usersData) {
+                let users = JSON.parse(usersData);
+                // 过滤掉要删除的用户
+                users = users.filter(u => u.username !== username);
+                // 保存更新后的用户列表
+                localStorage.setItem('users', JSON.stringify(users));
+                // 重新加载用户列表
+                const customers = users.filter(u => u.role === 'customer');
+                displayUsers(customers);
+            }
+        }
     };
 });
 </script>
@@ -232,6 +259,20 @@ function logoutAndGoLogin() {
     .userlist-header h1 {
         font-size: 1.2rem;
     }
+}
+.btn-delete {
+    padding: 7px 16px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background 0.2s;
+    margin-left: 8px;
+}
+.btn-delete:hover {
+    background-color: #c82333;
 }
 </style>
   </main>
