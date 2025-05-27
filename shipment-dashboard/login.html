@@ -4,12 +4,33 @@ title: 登录
 ---
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+let translations = {};
+let currentLang = 'zh';
+
+document.addEventListener('DOMContentLoaded', async function() {
     // 如果已经登录，直接跳转到运单列表页面
     const user = JSON.parse(sessionStorage.getItem('user'));
     if (user) {
         window.location.href = '/shipment-dashboard/shipments.html';
         return;
+    }
+
+    // 加载翻译文件
+    try {
+        const response = await fetch('/shipment-dashboard/data/translations.json');
+        translations = await response.json();
+        
+        // 从localStorage获取上次选择的语言
+        const savedLang = localStorage.getItem('selectedLanguage');
+        if (savedLang && translations[savedLang]) {
+            currentLang = savedLang;
+            document.getElementById('languageSelect').value = currentLang;
+        }
+        
+        // 应用翻译
+        applyTranslations();
+    } catch (error) {
+        console.error('Error loading translations:', error);
     }
 
     const form = document.getElementById('loginForm');
@@ -38,7 +59,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     username: user.username,
                     role: user.role,
                     name: user.name,
-                    customerCode: user.customerCode || null
+                    customerCode: user.customerCode || null,
+                    language: currentLang // 保存用户选择的语言
                 };
 
                 // 保存用户信息到sessionStorage
@@ -47,12 +69,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 跳转到订单列表页面
                 window.location.href = '/shipment-dashboard/orders.html';
             } else {
-                showError('用户名或密码错误，或所选角色不正确');
+                showError(translations[currentLang].error.invalid_credentials);
             }
         } catch (error) {
-            showError('登录过程中发生错误，请稍后重试');
+            showError(translations[currentLang].error.system_error);
             console.error('Login error:', error);
         }
+    });
+
+    // 语言选择事件监听
+    document.getElementById('languageSelect').addEventListener('change', function(e) {
+        currentLang = e.target.value;
+        localStorage.setItem('selectedLanguage', currentLang);
+        applyTranslations();
     });
 
     function showError(message) {
@@ -65,12 +94,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         document.getElementById('error-message').textContent = message;
     }
+
+    function applyTranslations() {
+        const t = translations[currentLang];
+        document.querySelector('h1').textContent = t.title;
+        document.querySelector('label[for="username"]').innerHTML = `<span class="icon">&#128100;</span> ${t.username}`;
+        document.querySelector('label[for="password"]').innerHTML = `<span class="icon">&#128274;</span> ${t.password}`;
+        document.querySelector('label[for="role"]').innerHTML = `<span class="icon">&#128188;</span> ${t.role}`;
+        document.querySelector('#role option[value="trader"]').textContent = t.trader;
+        document.querySelector('#role option[value="customer"]').textContent = t.customer;
+        document.querySelector('.btn-login').textContent = t.login;
+    }
 });
 </script>
 
 <div class="login-bg">
   <div class="login-container">
       <div class="login-box">
+          <div class="language-selector">
+              <select id="languageSelect" class="language-select">
+                  <option value="zh">中文</option>
+                  <option value="en">English</option>
+                  <option value="th">ไทย</option>
+                  <option value="fr">Français</option>
+                  <option value="de">Deutsch</option>
+                  <option value="ja">日本語</option>
+              </select>
+          </div>
           <div class="login-logo">
               <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f69a.svg" alt="logo" />
           </div>
@@ -211,5 +261,24 @@ document.addEventListener('DOMContentLoaded', function() {
     .login-box h1 {
         font-size: 1.2rem;
     }
+}
+.language-selector {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+.language-select {
+    padding: 8px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #f6f8fa;
+    cursor: pointer;
+    transition: border 0.2s;
+}
+.language-select:focus {
+    border: 1.5px solid #007bff;
+    outline: none;
+    background: #fff;
 }
 </style>
