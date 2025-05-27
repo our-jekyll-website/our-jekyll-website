@@ -4,6 +4,9 @@ title: 用户列表
 ---
 
 <script>
+let translations = {};
+let currentLang = 'zh';
+
 document.addEventListener('DOMContentLoaded', async function() {
     const user = JSON.parse(sessionStorage.getItem('user'));
     if (!user || user.role !== 'trader') {
@@ -11,30 +14,42 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // 加载用户列表
+    // Load translations
     try {
-        // 从 localStorage 获取用户数据
+        const response = await fetch('/shipment-dashboard/data/translations.json');
+        translations = await response.json();
+        
+        // Get language from user session
+        currentLang = user.language || 'zh';
+        
+        // Apply translations
+        applyTranslations();
+    } catch (error) {
+        console.error('Error loading translations:', error);
+    }
+
+    // Load user list
+    try {
         const usersData = localStorage.getItem('users');
         if (usersData) {
             const data = JSON.parse(usersData);
             const customers = data.filter(u => u.role === 'customer');
             displayUsers(customers);
         } else {
-            // 如果没有本地数据，从服务器获取
             const response = await fetch('/shipment-dashboard/data/users.json');
             const data = await response.json();
             const customers = data.users.filter(u => u.role === 'customer');
             displayUsers(customers);
         }
     } catch (error) {
-        console.error('加载用户列表失败:', error);
+        console.error('Error loading user list:', error);
     }
 
     function displayUsers(users) {
         const usersList = document.getElementById('usersList');
         
         if (users.length === 0) {
-            usersList.innerHTML = '<div class="empty-state"><p>暂无用户数据</p></div>';
+            usersList.innerHTML = `<div class="empty-state"><p>${translations[currentLang].user_list.no_users}</p></div>`;
             return;
         }
 
@@ -43,10 +58,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             <table class="users-table">
                 <thead>
                     <tr>
-                        <th>用户名</th>
-                        <th>客户代码</th>
-                        <th>姓名</th>
-                        <th>操作</th>
+                        <th>${translations[currentLang].user_list.username}</th>
+                        <th>${translations[currentLang].user_list.customer_code}</th>
+                        <th>${translations[currentLang].user_list.name}</th>
+                        <th>${translations[currentLang].user_list.actions}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -59,8 +74,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                             <td>${user.customerCode || '-'}</td>
                             <td>${user.name}</td>
                             <td>
-                                <button onclick="viewUserOrders('${user.username}')" class="btn-view">查看订单</button>
-                                <button onclick="deleteUser('${user.username}')" class="btn-delete">删除用户</button>
+                                <button onclick="viewUserOrders('${user.username}')" class="btn-view">${translations[currentLang].user_list.view_orders}</button>
+                                <button onclick="deleteUser('${user.username}')" class="btn-delete">${translations[currentLang].user_list.delete_user}</button>
                             </td>
                         </tr>
                     `).join('')}
@@ -71,22 +86,25 @@ document.addEventListener('DOMContentLoaded', async function() {
         usersList.innerHTML = html;
     }
 
+    function applyTranslations() {
+        document.querySelector('h1').innerHTML = `<span class="icon">&#128100;</span> ${translations[currentLang].user_list.title}`;
+        document.querySelector('.btn-create').textContent = translations[currentLang].user_list.create_user;
+        document.querySelector('.btn-back').textContent = translations[currentLang].user_list.back_to_orders;
+        document.querySelector('.btn-logout').textContent = translations[currentLang].user_list.logout;
+    }
+
     window.viewUserOrders = function(username) {
         sessionStorage.setItem('filterUsername', username);
         window.location.href = '/shipment-dashboard/orders.html?filter=user';
     };
 
     window.deleteUser = function(username) {
-        if (confirm('确定要删除该用户吗？此操作不可恢复。')) {
-            // 从 localStorage 获取用户数据
+        if (confirm(translations[currentLang].user_list.confirm_delete)) {
             const usersData = localStorage.getItem('users');
             if (usersData) {
                 let users = JSON.parse(usersData);
-                // 过滤掉要删除的用户
                 users = users.filter(u => u.username !== username);
-                // 保存更新后的用户列表
                 localStorage.setItem('users', JSON.stringify(users));
-                // 重新加载用户列表
                 const customers = users.filter(u => u.role === 'customer');
                 displayUsers(customers);
             }
@@ -99,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     <h1><span class="icon">&#128100;</span> 用户列表</h1>
     <div class="userlist-actions">
         <button onclick="window.location.href='/shipment-dashboard/create_user.html'" class="btn-create">创建用户</button>
-        <button onclick="window.location.href='/shipment-dashboard/orders.html'" class="btn-create">返回订单列表</button>
+        <button onclick="window.location.href='/shipment-dashboard/orders.html'" class="btn-back">返回订单列表</button>
         <button onclick="logoutAndGoLogin()" class="btn-logout">退出</button>
     </div>
 </div>
