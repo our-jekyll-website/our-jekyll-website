@@ -4,11 +4,28 @@ title: 订单列表
 ---
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+let translations = {};
+let currentLang = 'zh';
+
+document.addEventListener('DOMContentLoaded', async function() {
     const user = JSON.parse(sessionStorage.getItem('user'));
     if (!user || (user.role !== 'trader' && user.role !== 'customer')) {
         window.location.href = '/shipment-dashboard/shipments.html';
         return;
+    }
+
+    // 加载翻译文件
+    try {
+        const response = await fetch('/shipment-dashboard/data/translations.json');
+        translations = await response.json();
+        
+        // 从用户会话中获取语言设置
+        currentLang = user.language || 'zh';
+        
+        // 应用翻译
+        applyTranslations();
+    } catch (error) {
+        console.error('Error loading translations:', error);
     }
 
     // 顶部导航栏
@@ -16,12 +33,12 @@ document.addEventListener('DOMContentLoaded', function() {
     navMenu.className = 'nav-menu';
     if (user.role === 'trader') {
         navMenu.innerHTML = `
-            <a href="/shipment-dashboard/orders.html" class="active"><span class="icon">&#128179;</span> 订单管理</a>
-            <a href="/shipment-dashboard/user_list.html"><span class="icon">&#128100;</span> 用户列表</a>
+            <a href="/shipment-dashboard/orders.html" class="active"><span class="icon">&#128179;</span> ${translations[currentLang].orders.order_management}</a>
+            <a href="/shipment-dashboard/user_list.html"><span class="icon">&#128100;</span> ${translations[currentLang].orders.user_list}</a>
         `;
     } else {
         navMenu.innerHTML = `
-            <a href="/shipment-dashboard/orders.html" class="active"><span class="icon">&#128179;</span> 订单列表</a>
+            <a href="/shipment-dashboard/orders.html" class="active"><span class="icon">&#128179;</span> ${translations[currentLang].orders.title}</a>
         `;
     }
     document.body.insertBefore(navMenu, document.body.firstChild);
@@ -30,14 +47,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const buttonContainer = document.querySelector('.order-btn-group');
     if (user.role === 'trader') {
         const createOrderBtn = document.createElement('button');
-        createOrderBtn.textContent = '创建新订单';
+        createOrderBtn.textContent = translations[currentLang].orders.create_order;
         createOrderBtn.className = 'btn-create';
         createOrderBtn.onclick = function() {
             window.location.href = '/shipment-dashboard/create_order.html';
         };
 
         const userListBtn = document.createElement('button');
-        userListBtn.textContent = '用户列表';
+        userListBtn.textContent = translations[currentLang].orders.user_list;
         userListBtn.className = 'btn-create btn-secondary';
         userListBtn.onclick = function() {
             window.location.href = '/shipment-dashboard/user_list.html';
@@ -48,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const logoutBtn = document.createElement('button');
-    logoutBtn.textContent = '退出';
+    logoutBtn.textContent = translations[currentLang].orders.logout;
     logoutBtn.className = 'btn-logout';
     logoutBtn.onclick = function() {
         sessionStorage.removeItem('user');
@@ -96,10 +113,10 @@ document.addEventListener('DOMContentLoaded', function() {
             ordersList.innerHTML = `
                 <div class="empty-state">
                     <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f6d2.svg" alt="empty" class="empty-img"/>
-                    <p>暂无订单</p>
+                    <p>${translations[currentLang].orders.no_orders}</p>
                     ${user.role === 'customer' ? `
                         <button onclick="window.location.href='/shipment-dashboard/create_order.html'" class="btn-create">
-                            创建新订单
+                            ${translations[currentLang].orders.create_order}
                         </button>
                     ` : ''}
                 </div>
@@ -112,15 +129,15 @@ document.addEventListener('DOMContentLoaded', function() {
             <table class="orders-table">
                 <thead>
                     <tr>
-                        <th>订单号</th>
-                        <th>产品名称</th>
-                        <th>数量</th>
-                        <th>总价</th>
-                        <th>状态</th>
-                        <th>创建时间</th>
-                        <th>期望送达日期</th>
-                        <th>客户代码</th>
-                        <th>操作</th>
+                        <th>${translations[currentLang].orders.order_id}</th>
+                        <th>${translations[currentLang].orders.product_name}</th>
+                        <th>${translations[currentLang].orders.quantity}</th>
+                        <th>${translations[currentLang].orders.total_price}</th>
+                        <th>${translations[currentLang].orders.status}</th>
+                        <th>${translations[currentLang].orders.created_at}</th>
+                        <th>${translations[currentLang].orders.expected_delivery}</th>
+                        <th>${translations[currentLang].orders.customer_code}</th>
+                        <th>${translations[currentLang].orders.actions}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -135,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td>${formatDate(order.expectedDeliveryDate)}</td>
                             <td>${order.customerCode || '-'}</td>
                             <td>
-                                <a href="/shipment-dashboard/order_details.html?id=${order.id}" class="btn-view">查看详情</a>
+                                <a href="/shipment-dashboard/order_details.html?id=${order.id}" class="btn-view">${translations[currentLang].orders.view_details}</a>
                             </td>
                         </tr>
                     `).join('')}
@@ -148,24 +165,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getStatusText(status) {
         const statusMap = {
-            'pending': '待处理',
-            'processing': '处理中',
-            'shipped': '已发货',
-            'delivered': '已送达',
-            'cancelled': '已取消'
+            'pending': translations[currentLang].orders.status_pending,
+            'processing': translations[currentLang].orders.status_processing,
+            'shipped': translations[currentLang].orders.status_shipped,
+            'delivered': translations[currentLang].orders.status_delivered,
+            'cancelled': translations[currentLang].orders.status_cancelled
         };
         return statusMap[status] || status;
     }
 
     function formatDate(dateString) {
         if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('zh-CN');
+        return new Date(dateString).toLocaleDateString(currentLang === 'zh' ? 'zh-CN' : currentLang);
     }
 
-    document.getElementById('backToLoginBtn').onclick = function() {
-        sessionStorage.removeItem('user');
-        window.location.href = '/shipment-dashboard/login.html';
-    };
+    function applyTranslations() {
+        document.querySelector('h1').innerHTML = `<span class="icon">&#128179;</span> ${translations[currentLang].orders.title}`;
+    }
 });
 </script>
 
