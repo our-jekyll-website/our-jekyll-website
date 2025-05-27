@@ -4,11 +4,28 @@ title: 创建用户
 ---
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+let translations = {};
+let currentLang = 'zh';
+
+document.addEventListener('DOMContentLoaded', async function() {
     const user = JSON.parse(sessionStorage.getItem('user'));
     if (!user || user.role !== 'trader') {
         window.location.href = '/shipment-dashboard/shipments.html';
         return;
+    }
+
+    // 加载翻译文件
+    try {
+        const response = await fetch('/shipment-dashboard/data/translations.json');
+        translations = await response.json();
+        
+        // 从用户会话中获取语言设置
+        currentLang = user.language || 'zh';
+        
+        // 应用翻译
+        applyTranslations();
+    } catch (error) {
+        console.error('Error loading translations:', error);
     }
 
     const form = document.getElementById('createUserForm');
@@ -31,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 检查用户名是否已存在
                 if (users.some(u => u.username === username)) {
-                    alert('用户名已存在！');
+                    alert(translations[currentLang].create_user.error.username_exists);
                     return;
                 }
 
@@ -67,12 +84,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 保存更新后的用户列表到 localStorage
                 localStorage.setItem('users', JSON.stringify(users));
 
-                alert('用户创建成功！');
+                alert(translations[currentLang].create_user.success);
                 window.location.href = '/shipment-dashboard/user_list.html';
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('创建用户失败，请重试！');
+                alert(translations[currentLang].create_user.error.create_failed);
             });
     });
 
@@ -81,6 +98,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const customerCodeGroup = document.getElementById('customerCodeGroup');
         customerCodeGroup.style.display = e.target.value === 'customer' ? 'none' : 'none'; // 始终隐藏，因为现在是自动生成的
     });
+
+    function applyTranslations() {
+        document.querySelector('h1').textContent = translations[currentLang].create_user.title;
+        
+        // 更新表单标签
+        document.querySelector('label[for="username"]').textContent = translations[currentLang].create_user.username + '：';
+        document.querySelector('label[for="password"]').textContent = translations[currentLang].create_user.password + '：';
+        document.querySelector('label[for="name"]').textContent = translations[currentLang].create_user.name + '：';
+        document.querySelector('label[for="role"]').textContent = translations[currentLang].create_user.role + '：';
+        document.querySelector('label[for="phone"]').textContent = translations[currentLang].create_user.phone + '：';
+        document.querySelector('label[for="email"]').textContent = translations[currentLang].create_user.email + '：';
+        document.querySelector('label[for="customerCode"]').textContent = translations[currentLang].create_user.customer_code + '：';
+        
+        // 更新按钮文本
+        document.querySelector('.btn-primary').textContent = translations[currentLang].create_user.create;
+        document.querySelector('.btn-secondary').textContent = translations[currentLang].create_user.cancel;
+    }
 });
 </script>
 
